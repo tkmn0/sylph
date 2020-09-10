@@ -83,14 +83,12 @@ func (l *Listener) Listen(c *ListenerConfig) {
 				if listener == nil {
 					return
 				}
-				go func() {
-					conn, err := listener.Accept()
-					// util.Check(err)
-					if err != nil && !l.isClosed {
-						close(l.closeCh)
-					}
-					l.connection <- conn
-				}()
+				conn, err := listener.Accept()
+				// util.Check(err)
+				if err != nil && !l.isClosed {
+					close(l.closeCh)
+				}
+				l.connection <- conn
 			}
 		}
 	}()
