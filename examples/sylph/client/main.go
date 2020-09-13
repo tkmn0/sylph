@@ -38,7 +38,7 @@ func main() {
 					c.SendData([]byte("hello from client data"))
 					c.SendMessage("hello from client message")
 					if counter == 5 {
-						// c.Close()
+						c.Close()
 						// t.Close()
 						break
 					}

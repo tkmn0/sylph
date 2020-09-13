@@ -41,7 +41,7 @@ func (e *StreamEngine) Run(s stream.Stream, t stream.StreamType) {
 	})
 	s.OnCloseHandler(func() {
 		if !e.isClosed {
-			close(e.close)
+			e.close <- true
 		}
 	})
 
@@ -52,7 +52,7 @@ func (e *StreamEngine) Run(s stream.Stream, t stream.StreamType) {
 
 func (e *StreamEngine) Stop() {
 	if !e.isClosed {
-		close(e.close)
+		e.close <- true
 	}
 }
 
@@ -145,7 +145,7 @@ loop:
 			e.Lock()
 			if time.Since(e.lastHeartbeat) > time.Millisecond*(e.heartbeatRateMillisec+300) {
 				if !e.isClosed {
-					close(e.close)
+					e.close <- true
 				}
 				break loop
 			}
@@ -159,10 +159,10 @@ func (e *StreamEngine) checkError(err error) bool {
 	if err != nil {
 		if err == io.EOF {
 			if !e.isClosed {
-				close(e.close)
+				e.close <- true
 			}
 		} else {
-			close(e.err)
+			e.err <- err
 		}
 		invalid = true
 	}

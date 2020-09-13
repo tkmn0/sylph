@@ -40,7 +40,7 @@ func main() {
 					c.SendMessage("hello message from server")
 					if counter == 5 {
 						// c.Close()
-						t.Close()
+						// t.Close()
 						break
 					}
 					counter++

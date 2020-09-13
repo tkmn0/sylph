@@ -63,10 +63,6 @@ func (l *Listener) Listen(c *ListenerConfig) {
 		fmt.Println("dtls liten error", err)
 	}
 
-	// defer func() {
-	// 	util.Check(listener.Close())
-	// }()
-
 	go func() {
 	loop:
 		for {
@@ -84,9 +80,8 @@ func (l *Listener) Listen(c *ListenerConfig) {
 					return
 				}
 				conn, err := listener.Accept()
-				// util.Check(err)
 				if err != nil && !l.isClosed {
-					close(l.closeCh)
+					l.closeCh <- true
 				}
 				l.connection <- conn
 			}
@@ -95,6 +90,5 @@ func (l *Listener) Listen(c *ListenerConfig) {
 }
 
 func (l *Listener) Close() {
-	fmt.Println("close litener", l.isClosed)
-	close(l.closeCh)
+	l.closeCh <- true
 }

@@ -80,6 +80,6 @@ func (s *Server) createId() (string, error) {
 func (s *Server) Close() {
 	if !s.isClosed {
 		s.isClosed = true
-		close(s.close)
+		s.close <- true
 	}
 }
