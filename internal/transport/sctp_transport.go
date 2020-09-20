@@ -131,10 +131,13 @@ func (t *SctpTransport) onStreamClosed(s stream.Stream) {
 
 	streams := []stream.Stream{}
 
-	for _, st := range t.streams {
+	for i, st := range t.streams {
 		if st.StreamId() == s.StreamId() {
-			// change remove logic (when array length is 2, outof range)
-			// t.streams = append(t.streams[:i], t.streams[i+1:]...)
+			if len(t.streams) > 1 {
+				t.streams = append(t.streams[:i], t.streams[i+1:]...)
+			} else {
+				t.streams = []stream.Stream{}
+			}
 			continue
 		}
 		streams = append(streams, st)
