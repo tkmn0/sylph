@@ -16,14 +16,15 @@ type SctpStream struct {
 	messageSendHandler func(message string) (int, error)
 	streamCloseHandler func()
 	isClosed           bool
+	transportId        string
 }
 
-func NewSctpStream(stream *sctp.Stream) *SctpStream {
-	return &SctpStream{stream: stream}
+func NewSctpStream(stream *sctp.Stream, transportId string) *SctpStream {
+	return &SctpStream{stream: stream, transportId: transportId}
 }
 
 func (s *SctpStream) id() string {
-	return strconv.Itoa(int(s.stream.StreamIdentifier()))
+	return s.transportId + "-" + strconv.Itoa(int(s.stream.StreamIdentifier()))
 }
 
 // ChannelInterface

@@ -46,6 +46,7 @@ func (c *Client) Connect(address string, port int) {
 	dtlsConn, err := dtls.DialWithContext(ctx, "udp", addr, config)
 	util.Check(err)
 
+	// TODO: receive id from server
 	t := transport.NewSctpTransport("testtest")
 	t.Init(dtlsConn, true)
 	c.sctpTransports = append(c.sctpTransports, t)
