@@ -50,8 +50,12 @@ func main() {
 		t.OnClose(func() {
 			fmt.Println("client transport on close")
 		})
-
-		t.OpenChannel()
+		c := channel.ChannelConfig{
+			Unordered:        false,
+			ReliabliityType:  channel.ReliabilityTypeReliable,
+			ReliabilityValue: 0,
+		}
+		t.OpenChannel(c)
 		// t.OpenChannel()
 	}
 

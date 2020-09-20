@@ -103,15 +103,16 @@ func (t *SctpTransport) openBaseChannel() {
 	t.baseStream = sctpStream
 }
 
-func (t *SctpTransport) OpenChannel() error {
-	st, err := t.assosiation.OpenStream(t.streamCount, sctp.PayloadTypeWebRTCBinary)
+func (t *SctpTransport) OpenChannel(c channel.ChannelConfig) error {
+	s, err := t.assosiation.OpenStream(t.streamCount, sctp.PayloadTypeWebRTCBinary)
+	s.SetReliabilityParams(c.Unordered, byte(c.ReliabliityType), c.ReliabilityValue)
 	t.streamCount++
 
 	if err != nil {
 		return err
 	}
 
-	sctpStream := stream.NewSctpStream(st)
+	sctpStream := stream.NewSctpStream(s)
 	t.engine.Run(sctpStream, stream.StreamTypeApp)
 	t.streams = append(t.streams, sctpStream)
 	if t.onStreamHandler != nil {

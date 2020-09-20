@@ -5,7 +5,7 @@ import (
 )
 
 type Transport interface {
-	OpenChannel() error
+	OpenChannel(config channel.ChannelConfig) error
 	OnChannel(handler func(channel channel.Channel))
 	OnClose(handler func())
 	Close()
