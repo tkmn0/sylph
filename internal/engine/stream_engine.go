@@ -9,18 +9,19 @@ import (
 )
 
 type StreamEngine struct {
-	close         chan bool
-	err           chan error
-	builder       *MessageBuilder
-	parcer        *MessageParcer
-	lastHeartbeat time.Time
-	isStarted     bool
-	isClosed      bool
+	close   chan bool
+	err     chan error
+	builder *MessageBuilder
+	parcer  *MessageParcer
+	// lastHeartbeat time.Time
+	isStarted bool
+	isClosed  bool
 	sync.Mutex
 	heartbeatRateMillisec time.Duration
 	OnStreamClosed        func(stream stream.Stream)
 	OnStream              func(stream stream.Stream, streamType stream.StreamType)
 	streams               map[string]stream.Stream
+	lastHeartbeatTimes    map[string]time.Time
 	lock                  sync.RWMutex
 }
 
@@ -32,6 +33,7 @@ func StreamNewEngine() *StreamEngine {
 		parcer:                NewMessageParcer(),
 		heartbeatRateMillisec: 1000,
 		streams:               map[string]stream.Stream{},
+		lastHeartbeatTimes:    map[string]time.Time{},
 	}
 }
 
@@ -96,7 +98,7 @@ loop:
 		// 	// s.Error(err)
 		// 	break loop
 		case <-ticker.C:
-			fmt.Println("write heart beat")
+			// fmt.Println("write heart beat")
 
 			if e.isClosed {
 				break loop
@@ -152,12 +154,14 @@ loop:
 				}
 
 				if !e.isStarted {
-					e.lastHeartbeat = time.Now()
+					// e.lastHeartbeat = time.Now()
+					e.lastHeartbeatTimes[s.StreamId()] = time.Now()
 					go e.handleHealthCheck()
 					e.isStarted = true
 				}
 				e.Lock()
-				e.lastHeartbeat = time.Now()
+				// e.lastHeartbeat = time.Now()
+				e.lastHeartbeatTimes[s.StreamId()] = time.Now()
 				e.Unlock()
 
 				mt, buff := e.parcer.Parce(buffer)
@@ -187,15 +191,27 @@ loop:
 		case <-e.err:
 			break loop
 		default:
-			e.Lock()
-			if time.Since(e.lastHeartbeat) > time.Millisecond*(e.heartbeatRateMillisec+300) {
-				fmt.Println("time exeeded, close")
-				if !e.isClosed {
-					e.close <- true
+
+			for _, s := range e.streams {
+				t := e.lastHeartbeatTimes[s.StreamId()]
+				if time.Since(t) > time.Microsecond*(e.heartbeatRateMillisec+300) {
+					fmt.Println("time exeeded: ", s.StreamId())
+					if e.OnStreamClosed != nil {
+						e.OnStreamClosed(s)
+					}
 				}
-				break loop
 			}
-			e.Unlock()
+			/*
+				e.Lock()
+				if time.Since(e.lastHeartbeat) > time.Millisecond*(e.heartbeatRateMillisec+300) {
+					fmt.Println("time exeeded, close")
+					if !e.isClosed {
+						e.close <- true
+					}
+					break loop
+				}
+				e.Unlock()
+			*/
 		}
 	}
 }

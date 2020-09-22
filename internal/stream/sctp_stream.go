@@ -94,7 +94,7 @@ func (s *SctpStream) CloseStream(notify bool) {
 	fmt.Println("sctpstream CloseStream:", s.StreamId())
 	if !s.isClosed {
 		s.isClosed = true
-		s.stream.Close()
+		// s.stream.Close()
 		if notify && s.onCloseHandler != nil {
 			s.onCloseHandler()
 		}
