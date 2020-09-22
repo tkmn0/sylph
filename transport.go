@@ -10,6 +10,7 @@ type Transport interface {
 	OnClose(handler func())
 	Close()
 	Id() string
-	Channel(id uint16)
+	Channel(id string) channel.Channel
 	SetConfig()
+	IsClosed() bool
 }

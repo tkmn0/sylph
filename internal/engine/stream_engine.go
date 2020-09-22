@@ -1,6 +1,7 @@
 package engine
 
 import (
+	"fmt"
 	"io"
 	"sync"
 	"time"
@@ -33,6 +34,7 @@ func StreamNewEngine() *StreamEngine {
 }
 
 func (e *StreamEngine) Run(s stream.Stream, t stream.StreamType) {
+	fmt.Println("run called:", s.StreamId())
 	s.OnDataSendHandler(func(data []byte) (int, error) {
 		return s.WriteData(e.builder.BuildMessage(data, MessageTypeBody))
 	})
@@ -40,9 +42,13 @@ func (e *StreamEngine) Run(s stream.Stream, t stream.StreamType) {
 		return s.WriteMessage(e.builder.BuildMessage([]byte(message), MessageTypeBody))
 	})
 	s.OnCloseHandler(func() {
-		if !e.isClosed {
-			e.close <- true
+		fmt.Println("OnClosedHandler in engine", s.StreamId())
+		if e.OnStreamClosed != nil {
+			e.OnStreamClosed(s)
 		}
+		// if !e.isClosed {
+		// 	e.close <- true
+		// }
 	})
 
 	e.setupStream(s, t)
@@ -51,6 +57,7 @@ func (e *StreamEngine) Run(s stream.Stream, t stream.StreamType) {
 }
 
 func (e *StreamEngine) Stop() {
+	fmt.Println("engine stop called")
 	if !e.isClosed {
 		e.close <- true
 	}
@@ -70,6 +77,7 @@ loop:
 			e.isClosed = true
 
 			if e.OnStreamClosed != nil {
+				fmt.Println("OnStreamClosed:", s.StreamId())
 				e.OnStreamClosed(s)
 			}
 			break loop
@@ -144,6 +152,7 @@ loop:
 		default:
 			e.Lock()
 			if time.Since(e.lastHeartbeat) > time.Millisecond*(e.heartbeatRateMillisec+300) {
+				fmt.Println("time exeeded, close")
 				if !e.isClosed {
 					e.close <- true
 				}
@@ -159,6 +168,7 @@ func (e *StreamEngine) checkError(err error) bool {
 	if err != nil {
 		if err == io.EOF {
 			if !e.isClosed {
+				fmt.Println("check error close engine")
 				e.close <- true
 			}
 		} else {

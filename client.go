@@ -13,15 +13,15 @@ import (
 )
 
 type Client struct {
-	addr           *net.UDPAddr
-	cancel         context.CancelFunc
-	OnTransport    func(t Transport)
-	sctpTransports []*transport.SctpTransport
+	addr        *net.UDPAddr
+	cancel      context.CancelFunc
+	OnTransport func(t Transport)
+	transports  map[string]Transport
 }
 
 func NewClient() *Client {
 	return &Client{
-		sctpTransports: []*transport.SctpTransport{},
+		transports: map[string]Transport{},
 	}
 }
 
@@ -49,9 +49,17 @@ func (c *Client) Connect(address string, port int) {
 	// TODO: receive id from server
 	t := transport.NewSctpTransport("testtest")
 	t.Init(dtlsConn, true)
-	c.sctpTransports = append(c.sctpTransports, t)
+	c.transports[t.Id()] = t
 
 	if c.OnTransport != nil {
 		c.OnTransport(t)
+	}
+}
+
+func (c *Client) Transport(id string) Transport {
+	if t, exists := c.transports[id]; exists && !t.IsClosed() {
+		return t
+	} else {
+		return nil
 	}
 }
