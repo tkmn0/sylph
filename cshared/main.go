@@ -12,6 +12,15 @@ import (
 var client *sylph.Client
 var onTransportCallback C.onTransportCallback = nil
 
+// TODO
+// - create a interface of server and client (connection)
+// - create a list of connection map[unsafe.Pointer] Connection
+// - create a list of channels map[unsafe.Pointer] channel.Channel
+// - create a list of transports map[unsafe.Pointer] sylph.Transport
+// - create client methods and cast connection to sylph.Client
+// - create server methods and cast connection to sylph.Server
+// - change all methods to calling with unsafe.Pointer (to find the object)
+
 //export InitializeClient
 func InitializeClient() {
 	client = sylph.NewClient()
