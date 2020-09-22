@@ -1,7 +1,6 @@
 package stream
 
 import (
-	"fmt"
 	"strconv"
 
 	"github.com/pion/sctp"
@@ -38,7 +37,6 @@ func (s *SctpStream) SendMessage(message string) (int, error) {
 }
 
 func (s *SctpStream) Close() {
-	fmt.Println("sctp stream close called", s.id())
 	s.streamCloseHandler()
 }
 
@@ -91,10 +89,9 @@ func (s *SctpStream) Error(e error) {
 }
 
 func (s *SctpStream) CloseStream(notify bool) {
-	fmt.Println("sctpstream CloseStream:", s.StreamId())
 	if !s.isClosed {
 		s.isClosed = true
-		// s.stream.Close()
+		s.stream.Close()
 		if notify && s.onCloseHandler != nil {
 			s.onCloseHandler()
 		}
