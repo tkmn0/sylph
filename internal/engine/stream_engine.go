@@ -22,7 +22,7 @@ type StreamEngine struct {
 	OnStream              func(stream stream.Stream, streamType stream.StreamType)
 }
 
-func StreamNewEngine() *StreamEngine {
+func NewStreamEngine() *StreamEngine {
 	return &StreamEngine{
 		close:                 make(chan bool),
 		err:                   make(chan error),

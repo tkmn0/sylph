@@ -81,7 +81,7 @@ func (t *SctpTransport) AcceptStreamLoop() {
 				return
 			}
 			sctpStream := stream.NewSctpStream(st, t.id)
-			e := engine.StreamNewEngine()
+			e := engine.NewStreamEngine()
 			e.OnStreamClosed = t.onStreamClosed
 			e.OnStream = t.onStreamWithType
 			t.engines[sctpStream.StreamId()] = e
@@ -99,7 +99,7 @@ func (t *SctpTransport) openBaseChannel() {
 	}
 
 	sctpStream := stream.NewSctpStream(st, t.id)
-	e := engine.StreamNewEngine()
+	e := engine.NewStreamEngine()
 	e.OnStreamClosed = t.onStreamClosed
 	t.engines[sctpStream.StreamId()] = e
 	e.Run(sctpStream, stream.StreamTypeBase)
@@ -118,7 +118,7 @@ func (t *SctpTransport) OpenChannel(c channel.ChannelConfig) error {
 	}
 
 	sctpStream := stream.NewSctpStream(s, t.id)
-	e := engine.StreamNewEngine()
+	e := engine.NewStreamEngine()
 	e.OnStreamClosed = t.onStreamClosed
 	t.engines[sctpStream.StreamId()] = e
 	e.Run(sctpStream, stream.StreamTypeApp)
