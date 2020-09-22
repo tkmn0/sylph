@@ -1,7 +1,6 @@
 package main
 
 // #include "api.h"
-// #include "stdlib.h"
 import "C"
 import (
 	"unsafe"
