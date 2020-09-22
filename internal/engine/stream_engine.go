@@ -2,7 +2,6 @@ package engine
 
 import (
 	"fmt"
-	"io"
 	"sync"
 	"time"
 
@@ -21,6 +20,8 @@ type StreamEngine struct {
 	heartbeatRateMillisec time.Duration
 	OnStreamClosed        func(stream stream.Stream)
 	OnStream              func(stream stream.Stream, streamType stream.StreamType)
+	streams               map[string]stream.Stream
+	lock                  sync.RWMutex
 }
 
 func StreamNewEngine() *StreamEngine {
@@ -30,11 +31,14 @@ func StreamNewEngine() *StreamEngine {
 		builder:               NewMessageBuilder(),
 		parcer:                NewMessageParcer(),
 		heartbeatRateMillisec: 1000,
+		streams:               map[string]stream.Stream{},
 	}
 }
 
 func (e *StreamEngine) Run(s stream.Stream, t stream.StreamType) {
-	fmt.Println("run called:", s.StreamId())
+	e.lock.Lock()
+	defer e.lock.Unlock()
+	e.streams[s.StreamId()] = s
 	s.OnDataSendHandler(func(data []byte) (int, error) {
 		return s.WriteData(e.builder.BuildMessage(data, MessageTypeBody))
 	})
@@ -43,17 +47,17 @@ func (e *StreamEngine) Run(s stream.Stream, t stream.StreamType) {
 	})
 	s.OnCloseHandler(func() {
 		fmt.Println("OnClosedHandler in engine", s.StreamId())
+		e.lock.Lock()
+		defer e.lock.Unlock()
+		delete(e.streams, s.StreamId())
 		if e.OnStreamClosed != nil {
 			e.OnStreamClosed(s)
 		}
-		// if !e.isClosed {
-		// 	e.close <- true
-		// }
 	})
 
 	e.setupStream(s, t)
-	go e.handleHeartBeat(s)
-	go e.readStream(s)
+	go e.handleHeartBeat()
+	go e.readStream()
 }
 
 func (e *StreamEngine) Stop() {
@@ -65,10 +69,14 @@ func (e *StreamEngine) Stop() {
 
 func (e *StreamEngine) setupStream(s stream.Stream, t stream.StreamType) {
 	_, err := s.WriteData(e.builder.InitializeMessage(t))
-	e.checkError(err)
+	if err != nil {
+		e.lock.Lock()
+		defer e.lock.Unlock()
+		delete(e.streams, s.StreamId())
+	}
 }
 
-func (e *StreamEngine) handleHeartBeat(s stream.Stream) {
+func (e *StreamEngine) handleHeartBeat() {
 	ticker := time.NewTicker(time.Millisecond * e.heartbeatRateMillisec)
 loop:
 	for {
@@ -77,64 +85,87 @@ loop:
 			e.isClosed = true
 
 			if e.OnStreamClosed != nil {
-				fmt.Println("OnStreamClosed:", s.StreamId())
-				e.OnStreamClosed(s)
+				// fmt.Println("OnStreamClosed:", s.StreamId())
+				// e.OnStreamClosed(s)
+				for _, stream := range e.streams {
+					e.OnStreamClosed(stream)
+				}
 			}
 			break loop
-		case err := <-e.err:
-			s.Error(err)
-			break loop
+		// case err := <-e.err:
+		// 	// s.Error(err)
+		// 	break loop
 		case <-ticker.C:
 			if e.isClosed {
 				break loop
 			}
-			_, err := s.WriteData(e.builder.HeartBeatmessage())
-			e.checkError(err)
+			e.lock.Lock()
+			defer e.lock.Unlock()
+
+			for _, stream := range e.streams {
+				_, err := stream.WriteData(e.builder.HeartBeatmessage())
+				// e.checkError(err)
+				if err != nil {
+					delete(e.streams, stream.StreamId())
+					if e.OnStreamClosed != nil {
+						e.OnStreamClosed(stream)
+					}
+				}
+			}
 		}
 	}
 }
 
-func (e *StreamEngine) readStream(s stream.Stream) {
+func (e *StreamEngine) readStream() {
 loop:
 	for {
 		select {
 		case <-e.close:
 			if e.OnStreamClosed != nil {
-				e.OnStreamClosed(s)
-			}
-			break loop
-		case err := <-e.err:
-			s.Error(err)
-			break loop
-		default:
-			buffer := make([]byte, 1024)
-			l, err, isString := s.Read(buffer)
-			buffer = buffer[:l]
-			invalid := e.checkError(err)
-			if invalid {
-				return
-			}
-
-			if !e.isStarted {
-				e.lastHeartbeat = time.Now()
-				go e.handleHealthCheck()
-				e.isStarted = true
-			}
-			e.Lock()
-			e.lastHeartbeat = time.Now()
-			e.Unlock()
-
-			mt, buff := e.parcer.Parce(buffer)
-			if mt == MessageTypeBody {
-				if isString {
-					s.Message(string(buff))
-				} else {
-					s.Data(buff)
+				e.lock.Lock()
+				defer e.lock.Unlock()
+				for _, stream := range e.streams {
+					e.OnStreamClosed(stream)
 				}
-			} else if mt == MessageTypeInitialize {
-				streamType := stream.StreamType(buff[0])
-				if e.OnStream != nil {
-					e.OnStream(s, streamType)
+			}
+			break loop
+		// case err := <-e.err:
+		// 	// s.Error(err)
+		// 	break loop
+		default:
+			e.lock.Lock()
+			defer e.lock.Unlock()
+			for _, s := range e.streams {
+
+				buffer := make([]byte, 1024)
+				l, err, isString := s.Read(buffer)
+				buffer = buffer[:l]
+				if err != nil {
+					delete(e.streams, s.StreamId())
+					return
+				}
+
+				if !e.isStarted {
+					e.lastHeartbeat = time.Now()
+					go e.handleHealthCheck()
+					e.isStarted = true
+				}
+				e.Lock()
+				e.lastHeartbeat = time.Now()
+				e.Unlock()
+
+				mt, buff := e.parcer.Parce(buffer)
+				if mt == MessageTypeBody {
+					if isString {
+						s.Message(string(buff))
+					} else {
+						s.Data(buff)
+					}
+				} else if mt == MessageTypeInitialize {
+					streamType := stream.StreamType(buff[0])
+					if e.OnStream != nil {
+						e.OnStream(s, streamType)
+					}
 				}
 			}
 		}
@@ -163,6 +194,7 @@ loop:
 	}
 }
 
+/*
 func (e *StreamEngine) checkError(err error) bool {
 	invalid := false
 	if err != nil {
@@ -178,3 +210,4 @@ func (e *StreamEngine) checkError(err error) bool {
 	}
 	return invalid
 }
+*/
