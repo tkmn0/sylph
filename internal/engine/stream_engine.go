@@ -96,20 +96,24 @@ loop:
 		// 	// s.Error(err)
 		// 	break loop
 		case <-ticker.C:
+			fmt.Println("write heart beat")
+
 			if e.isClosed {
 				break loop
 			}
-			e.lock.Lock()
-			defer e.lock.Unlock()
+			// e.lock.Lock()
+			// defer e.lock.Unlock()
 
 			for _, stream := range e.streams {
 				_, err := stream.WriteData(e.builder.HeartBeatmessage())
 				// e.checkError(err)
 				if err != nil {
+					e.lock.Lock()
 					delete(e.streams, stream.StreamId())
 					if e.OnStreamClosed != nil {
 						e.OnStreamClosed(stream)
 					}
+					e.lock.Unlock()
 				}
 			}
 		}
@@ -133,15 +137,17 @@ loop:
 		// 	// s.Error(err)
 		// 	break loop
 		default:
-			e.lock.Lock()
-			defer e.lock.Unlock()
+			// e.lock.Lock()
+			// defer e.lock.Unlock()
 			for _, s := range e.streams {
 
 				buffer := make([]byte, 1024)
 				l, err, isString := s.Read(buffer)
 				buffer = buffer[:l]
 				if err != nil {
+					e.lock.Lock()
 					delete(e.streams, s.StreamId())
+					e.lock.Unlock()
 					return
 				}
 
