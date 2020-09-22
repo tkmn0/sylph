@@ -40,6 +40,24 @@ func CloseChannel(transportId *C.char, channelId *C.char) {
 	}
 }
 
+//export SendMessage
+func SendMessage(transportId *C.char, channelId *C.char, message *C.char) bool {
+	if c := findChannel(transportId, channelId); c != nil {
+		_, err := c.SendMessage(C.GoString(message))
+		return err == nil
+	}
+	return false
+}
+
+//export SendData
+func SendData(transportId *C.char, channelId *C.char, ptr unsafe.Pointer, length C.int) bool {
+	if c := findChannel(transportId, channelId); c != nil {
+		_, err := c.SendData(C.GoBytes(ptr, length))
+		return err == nil
+	}
+	return false
+}
+
 //export RegisterOnTransportCallback
 func RegisterOnTransportCallback(callback C.onTransportCallback) {
 	onTransportCallback = callback
