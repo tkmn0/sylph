@@ -40,6 +40,7 @@ func main() {
 					if counter == 5 {
 						c.Close()
 						// t.Close()
+						// t.OpenChannel(channel.ChannelConfig{})
 						break
 					}
 					counter++
