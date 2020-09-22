@@ -12,8 +12,8 @@ import (
 var client *sylph.Client
 var onTransportCallback C.onTransportCallback = nil
 
-//export Initialize
-func Initialize() {
+//export InitializeClient
+func InitializeClient() {
 	client = sylph.NewClient()
 	client.OnTransport = func(t sylph.Transport) {
 		C.invokeOnTransport(C.CString(t.Id()), onTransportCallback)
