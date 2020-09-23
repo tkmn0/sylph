@@ -10,7 +10,7 @@ import (
 
 func main() {
 	s := sylph.NewServer("127.0.0.1", 4444)
-	s.OnTransport = func(t sylph.Transport) {
+	s.OnTransport(func(t sylph.Transport) {
 		fmt.Println("transport opened")
 		t.OnChannel(func(c channel.Channel) {
 			fmt.Println("server on channel")
@@ -50,6 +50,6 @@ func main() {
 		t.OnClose(func() {
 			fmt.Println("transport closed")
 		})
-	}
+	})
 	s.Run()
 }

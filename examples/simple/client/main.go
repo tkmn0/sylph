@@ -10,7 +10,7 @@ import (
 
 func main() {
 	c := sylph.NewClient()
-	c.OnTransport = func(t sylph.Transport) {
+	c.OnTransport(func(t sylph.Transport) {
 		fmt.Println("client on transport")
 		t.OnChannel(func(c channel.Channel) {
 			fmt.Println("client on channel")
@@ -58,7 +58,7 @@ func main() {
 		}
 		t.OpenChannel(c)
 		// t.OpenChannel()
-	}
+	})
 
 	c.Connect("127.0.0.1", 4444)
 	for {
