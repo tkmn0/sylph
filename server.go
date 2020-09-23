@@ -8,12 +8,12 @@ import (
 )
 
 type Server struct {
-	listenner      *Listener
-	ListenerConfig *ListenerConfig
-	transports     []Transport
-	OnTransport    func(transport Transport)
-	close          chan bool
-	isClosed       bool
+	listenner          *Listener
+	ListenerConfig     *ListenerConfig
+	transports         []Transport
+	onTransportHandler func(transport Transport)
+	close              chan bool
+	isClosed           bool
 }
 
 func NewServer(address string, port int) *Server {
@@ -52,8 +52,8 @@ loop:
 			}
 
 			s.transports = append(s.transports, sctp)
-			if s.OnTransport != nil {
-				s.OnTransport(sctp)
+			if s.onTransportHandler != nil {
+				s.onTransportHandler(sctp)
 			}
 		case <-s.close:
 			s.listenner.Close()
@@ -75,6 +75,10 @@ func (s *Server) createId() (string, error) {
 		}
 	}
 	return uuid, nil
+}
+
+func (s *Server) OnTransport(handler func(t Transport)) {
+	s.onTransportHandler = handler
 }
 
 func (s *Server) Close() {

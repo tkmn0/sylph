@@ -13,10 +13,10 @@ import (
 )
 
 type Client struct {
-	addr        *net.UDPAddr
-	cancel      context.CancelFunc
-	OnTransport func(t Transport)
-	transports  map[string]Transport
+	addr               *net.UDPAddr
+	cancel             context.CancelFunc
+	onTransportHandler func(t Transport)
+	transports         map[string]Transport
 }
 
 func NewClient() *Client {
@@ -51,8 +51,8 @@ func (c *Client) Connect(address string, port int) {
 	t.Init(dtlsConn, true)
 	c.transports[t.Id()] = t
 
-	if c.OnTransport != nil {
-		c.OnTransport(t)
+	if c.onTransportHandler != nil {
+		c.onTransportHandler(t)
 	}
 }
 
@@ -62,4 +62,8 @@ func (c *Client) Transport(id string) Transport {
 	} else {
 		return nil
 	}
+}
+
+func (c *Client) OnTransport(handler func(t Transport)) {
+	c.onTransportHandler = handler
 }
