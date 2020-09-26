@@ -6,6 +6,7 @@ package main
 */
 import "C"
 import (
+	"fmt"
 	"unsafe"
 
 	"github.com/tkmn0/sylph"
@@ -13,6 +14,7 @@ import (
 )
 
 var client *sylph.Client
+var server *sylph.Server
 var channels map[string]unsafe.Pointer
 var transports map[string]unsafe.Pointer
 
@@ -35,6 +37,25 @@ func InitializeClient() uintptr {
 func Connect(p unsafe.Pointer, address *C.char, port C.int) {
 	c := (*sylph.Client)(p)
 	c.Connect(C.GoString(address), int(port))
+}
+
+//export InitializeServer
+func InitializeServer(address *C.char, port C.int) uintptr {
+	server = sylph.NewServer(C.GoString(address), int(port))
+	return uintptr(unsafe.Pointer(server))
+}
+
+//export RunServer
+func RunServer(p unsafe.Pointer) {
+	s := (*sylph.Server)(p)
+	go s.Run()
+}
+
+//export StopServer
+func StopServer(p unsafe.Pointer) {
+	fmt.Println("stop server called")
+	s := (*sylph.Server)(p)
+	s.Close()
 }
 
 //export OpenChannel
@@ -70,13 +91,22 @@ func SendData(p unsafe.Pointer, ptr unsafe.Pointer, length C.int) bool {
 }
 
 //export RegisterOnTransportCallback
-func RegisterOnTransportCallback(p unsafe.Pointer, callback C.onTransportCallback) {
-	c := (*sylph.Client)(p)
-	c.OnTransport(func(t sylph.Transport) {
-		ptr := unsafe.Pointer(&t)
-		transports[t.Id()] = ptr
-		C.invokeOnTransport(C.uintptr_t(uintptr(ptr)), callback)
-	})
+func RegisterOnTransportCallback(p unsafe.Pointer, callback C.onTransportCallback, isServer bool) {
+	if isServer {
+		s := (*sylph.Server)(p)
+		s.OnTransport(func(t sylph.Transport) {
+			ptr := unsafe.Pointer(&t)
+			transports[t.Id()] = ptr
+			C.invokeOnTransport(C.uintptr_t(uintptr(ptr)), callback)
+		})
+	} else {
+		c := (*sylph.Client)(p)
+		c.OnTransport(func(t sylph.Transport) {
+			ptr := unsafe.Pointer(&t)
+			transports[t.Id()] = ptr
+			C.invokeOnTransport(C.uintptr_t(uintptr(ptr)), callback)
+		})
+	}
 }
 
 //export RegisterOnChannelCallback
