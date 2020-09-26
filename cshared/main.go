@@ -6,7 +6,6 @@ package main
 */
 import "C"
 import (
-	"fmt"
 	"unsafe"
 
 	"github.com/tkmn0/sylph"
@@ -53,7 +52,6 @@ func RunServer(p unsafe.Pointer) {
 
 //export StopServer
 func StopServer(p unsafe.Pointer) {
-	fmt.Println("stop server called")
 	s := (*sylph.Server)(p)
 	s.Close()
 }
