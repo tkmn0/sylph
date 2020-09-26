@@ -9,14 +9,13 @@ import (
 )
 
 type StreamEngine struct {
-	close         chan bool
-	err           chan error
-	builder       *MessageBuilder
-	parcer        *MessageParcer
-	lastHeartbeat time.Time
-	isStarted     bool
-	isClosed      bool
-	sync.Mutex
+	close                 chan bool
+	err                   chan error
+	builder               *MessageBuilder
+	parcer                *MessageParcer
+	lastHeartbeat         time.Time
+	isClosed              bool
+	lock                  sync.RWMutex
 	heartbeatRateMillisec time.Duration
 	OnStreamClosed        func(stream stream.Stream)
 	OnStream              func(stream stream.Stream, streamType stream.StreamType)
@@ -48,6 +47,7 @@ func (e *StreamEngine) Run(s stream.Stream, t stream.StreamType) {
 	e.setupStream(s, t)
 	go e.handleHeartBeat(s)
 	go e.readStream(s)
+	go e.handleHealthCheck()
 }
 
 func (e *StreamEngine) Stop() {
@@ -107,15 +107,6 @@ loop:
 				return
 			}
 
-			if !e.isStarted {
-				e.lastHeartbeat = time.Now()
-				go e.handleHealthCheck()
-				e.isStarted = true
-			}
-			e.Lock()
-			e.lastHeartbeat = time.Now()
-			e.Unlock()
-
 			mt, buff := e.parcer.Parce(buffer)
 			if mt == MessageTypeBody {
 				if isString {
@@ -128,6 +119,10 @@ loop:
 				if e.OnStream != nil {
 					e.OnStream(s, streamType)
 				}
+			} else if mt == MessageTypeHeartBeat {
+				e.lock.Lock()
+				e.lastHeartbeat = time.Now()
+				e.lock.Unlock()
 			}
 		}
 	}
@@ -142,14 +137,16 @@ loop:
 		case <-e.err:
 			break loop
 		default:
-			e.Lock()
-			if time.Since(e.lastHeartbeat) > time.Millisecond*(e.heartbeatRateMillisec+300) {
-				if !e.isClosed {
-					e.close <- true
+			e.lock.Lock()
+			if !e.lastHeartbeat.IsZero() {
+				if time.Since(e.lastHeartbeat) > time.Millisecond*(e.heartbeatRateMillisec+300) {
+					if !e.isClosed {
+						e.close <- true
+					}
+					break loop
 				}
-				break loop
 			}
-			e.Unlock()
+			e.lock.Unlock()
 		}
 	}
 }

@@ -57,7 +57,6 @@ func main() {
 			ReliabilityValue: 0,
 		}
 		t.OpenChannel(c)
-		// t.OpenChannel()
 	})
 
 	c.Connect("127.0.0.1", 4444)
