@@ -46,8 +46,9 @@ func (e *StreamEngine) Run(s stream.Stream, t stream.StreamType) {
 
 	e.setupStream(s, t)
 	go e.handleHeartBeat(s)
-	go e.readStream(s)
 	go e.handleHealthCheck()
+
+	go e.readStream(s)
 }
 
 func (e *StreamEngine) Stop() {
@@ -129,6 +130,7 @@ loop:
 }
 
 func (e *StreamEngine) handleHealthCheck() {
+	ticker := time.NewTicker(time.Millisecond * e.heartbeatRateMillisec)
 loop:
 	for {
 		select {
@@ -136,7 +138,7 @@ loop:
 			break loop
 		case <-e.err:
 			break loop
-		default:
+		case <-ticker.C:
 			e.lock.Lock()
 			if !e.lastHeartbeat.IsZero() {
 				if time.Since(e.lastHeartbeat) > time.Millisecond*(e.heartbeatRateMillisec+300) {
