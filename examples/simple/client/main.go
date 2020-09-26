@@ -38,7 +38,7 @@ func main() {
 					c.SendData([]byte("hello from client data"))
 					c.SendMessage("hello from client message")
 					if counter == 5 {
-						c.Close()
+						// c.Close()
 						// t.Close()
 						// t.OpenChannel(channel.ChannelConfig{})
 						break
@@ -57,10 +57,10 @@ func main() {
 			ReliabilityValue: 0,
 		}
 		t.OpenChannel(c)
-		// t.OpenChannel()
 	})
 
 	c.Connect("127.0.0.1", 4444)
 	for {
+		time.Sleep(1)
 	}
 }
