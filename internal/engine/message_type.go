@@ -9,3 +9,8 @@ const (
 	MessageTypeUnknown
 	MessageTypeInitialize
 )
+
+type InitializeMessage struct {
+	StreamType  uint8  `json:"stream_type"`
+	TransportId string `json:"transport_id"`
+}

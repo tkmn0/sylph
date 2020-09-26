@@ -1,6 +1,8 @@
 package engine
 
-import "github.com/tkmn0/sylph/internal/stream"
+import (
+	"encoding/json"
+)
 
 type MessageBuilder struct{}
 
@@ -17,6 +19,7 @@ func (b *MessageBuilder) HeartBeatmessage() []byte {
 	return []byte{uint8(MessageTypeHeartBeat)}
 }
 
-func (b *MessageBuilder) InitializeMessage(t stream.StreamType) []byte {
-	return []byte{uint8(MessageTypeInitialize), uint8(t)}
+func (b *MessageBuilder) InitializeMessage(m InitializeMessage) []byte {
+	bytes, _ := json.Marshal(&m)
+	return append([]byte{uint8(MessageTypeInitialize)}, bytes[:]...)
 }

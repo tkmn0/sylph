@@ -1,6 +1,7 @@
 package engine
 
 import (
+	"encoding/json"
 	"io"
 	"sync"
 	"time"
@@ -19,7 +20,7 @@ type StreamEngine struct {
 	healthCheckRateMillisec time.Duration
 	timeOutDurationMillisec time.Duration
 	OnStreamClosed          func(stream stream.Stream)
-	OnStream                func(stream stream.Stream, streamType stream.StreamType)
+	OnStream                func(stream stream.Stream, messge InitializeMessage)
 }
 
 func NewStreamEngine(config EngineConfig) *StreamEngine {
@@ -34,7 +35,7 @@ func NewStreamEngine(config EngineConfig) *StreamEngine {
 	}
 }
 
-func (e *StreamEngine) Run(s stream.Stream, t stream.StreamType, config EngineConfig) {
+func (e *StreamEngine) Run(s stream.Stream, t stream.StreamType, config EngineConfig, transportId string) {
 	e.heartbeatRateMillisec = config.HeartbeatRateMisslisec
 	e.timeOutDurationMillisec = config.TimeOutDurationMilliSec
 	s.OnDataSendHandler(func(data []byte) (int, error) {
@@ -49,7 +50,7 @@ func (e *StreamEngine) Run(s stream.Stream, t stream.StreamType, config EngineCo
 		}
 	})
 
-	e.setupStream(s, t)
+	e.setupStream(s, t, transportId)
 	e.observeStatus(s)
 	go e.handleHeartBeat(s)
 	go e.handleHealthCheck()
@@ -62,8 +63,11 @@ func (e *StreamEngine) Stop() {
 	}
 }
 
-func (e *StreamEngine) setupStream(s stream.Stream, t stream.StreamType) {
-	_, err := s.WriteData(e.builder.InitializeMessage(t))
+func (e *StreamEngine) setupStream(s stream.Stream, t stream.StreamType, id string) {
+	_, err := s.WriteData(e.builder.InitializeMessage(InitializeMessage{
+		StreamType:  uint8(t),
+		TransportId: id,
+	}))
 	e.checkError(err)
 }
 
@@ -116,9 +120,10 @@ func (e *StreamEngine) readStream(s stream.Stream) {
 				s.Data(buff)
 			}
 		} else if mt == MessageTypeInitialize {
-			streamType := stream.StreamType(buff[0])
+			var msg InitializeMessage
+			json.Unmarshal(buff, &msg)
 			if e.OnStream != nil {
-				e.OnStream(s, streamType)
+				e.OnStream(s, msg)
 			}
 		} else if mt == MessageTypeHeartBeat {
 			e.lock.Lock()

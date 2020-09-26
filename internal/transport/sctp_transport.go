@@ -12,16 +12,17 @@ import (
 )
 
 type SctpTransport struct {
-	id              string
-	assosiation     *sctp.Association
-	sctpStreams     map[string]*stream.SctpStream
-	baseStream      stream.Stream
-	onStreamHandler func(c channel.Channel)
-	onCloseHandler  func()
-	engines         map[string]*engine.StreamEngine
-	close           chan bool
-	streamCount     uint16
-	engineConfig    engine.EngineConfig
+	id                     string
+	assosiation            *sctp.Association
+	sctpStreams            map[string]*stream.SctpStream
+	baseStream             stream.Stream
+	onChannelHandler       func(c channel.Channel)
+	onCloseHandler         func()
+	OnTransportInitialized func()
+	engines                map[string]*engine.StreamEngine
+	close                  chan bool
+	streamCount            uint16
+	engineConfig           engine.EngineConfig
 }
 
 func NewSctpTransport(id string) *SctpTransport {
@@ -83,51 +84,46 @@ func (t *SctpTransport) AcceptStreamLoop() {
 			sctpStream := stream.NewSctpStream(st, t.id)
 			e := engine.NewStreamEngine(t.engineConfig)
 			e.OnStreamClosed = t.onStreamClosed
-			e.OnStream = t.onStreamWithType
+			e.OnStream = t.onStreamInitialized
 			t.engines[sctpStream.StreamId()] = e
-			e.Run(sctpStream, stream.StreamTypeUnKnown, t.engineConfig)
+			e.Run(sctpStream, stream.StreamTypeUnKnown, t.engineConfig, t.id)
 		}
 	}
 }
 
 func (t *SctpTransport) openBaseChannel() {
+	c := channel.ChannelConfig{
+		Unordered:        false,
+		ReliabliityType:  channel.ReliabilityTypeReliable,
+		ReliabilityValue: 0,
+	}
+	err := t.openChannel(c, stream.StreamTypeBase)
+	if err != nil {
+		fmt.Println("error to open base stream", err)
+	}
+}
+
+func (t *SctpTransport) openChannel(c channel.ChannelConfig, streamType stream.StreamType) error {
 	st, err := t.assosiation.OpenStream(t.streamCount, sctp.PayloadTypeWebRTCBinary)
+	st.SetReliabilityParams(c.Unordered, byte(c.ReliabliityType), c.ReliabilityValue)
 	t.streamCount++
 
 	if err != nil {
 		fmt.Println("error open stream", err)
+		return err
 	}
 
 	sctpStream := stream.NewSctpStream(st, t.id)
 	e := engine.NewStreamEngine(t.engineConfig)
 	e.OnStreamClosed = t.onStreamClosed
+	e.OnStream = t.onStreamInitialized
 	t.engines[sctpStream.StreamId()] = e
-	e.Run(sctpStream, stream.StreamTypeBase, t.engineConfig)
-
-	t.sctpStreams[sctpStream.StreamId()] = sctpStream
-	t.baseStream = sctpStream
+	e.Run(sctpStream, streamType, t.engineConfig, t.id)
+	return nil
 }
 
 func (t *SctpTransport) OpenChannel(c channel.ChannelConfig) error {
-	s, err := t.assosiation.OpenStream(t.streamCount, sctp.PayloadTypeWebRTCBinary)
-	s.SetReliabilityParams(c.Unordered, byte(c.ReliabliityType), c.ReliabilityValue)
-	t.streamCount++
-
-	if err != nil {
-		return err
-	}
-
-	sctpStream := stream.NewSctpStream(s, t.id)
-	e := engine.NewStreamEngine(t.engineConfig)
-	e.OnStreamClosed = t.onStreamClosed
-	t.engines[sctpStream.StreamId()] = e
-	e.Run(sctpStream, stream.StreamTypeApp, t.engineConfig)
-
-	t.sctpStreams[sctpStream.StreamId()] = sctpStream
-	if t.onStreamHandler != nil {
-		t.onStreamHandler(sctpStream)
-	}
-	return nil
+	return t.openChannel(c, stream.StreamTypeApp)
 }
 
 func (t *SctpTransport) onStreamClosed(s stream.Stream) {
@@ -147,18 +143,34 @@ func (t *SctpTransport) onStreamClosed(s stream.Stream) {
 	delete(t.sctpStreams, s.StreamId())
 }
 
-func (t *SctpTransport) onStreamWithType(st stream.Stream, streamType stream.StreamType) {
+func (t *SctpTransport) onStreamInitialized(st stream.Stream, message engine.InitializeMessage) {
+	t.sctpStreams[st.StreamId()] = t.changeStreamToSctpStream(st)
+	streamType := stream.StreamType(message.StreamType)
 	if streamType == stream.StreamTypeBase {
 		t.baseStream = st
-	}
-	t.sctpStreams[st.StreamId()] = t.changeStreamToSctpStream(st)
-
-	if streamType == stream.StreamTypeApp {
-		if t.onStreamHandler != nil {
+	} else if streamType == stream.StreamTypeApp {
+		if t.onChannelHandler != nil {
 			sctpStream := t.changeStreamToSctpStream(st)
-
 			if sctpStream != nil {
-				t.onStreamHandler(sctpStream)
+				t.onChannelHandler(sctpStream)
+			}
+		}
+	} else {
+		// client recieved
+		if t.id == "" {
+			t.id = message.TransportId
+			// id not configurated, this is base stream
+			if t.OnTransportInitialized != nil {
+				t.OnTransportInitialized()
+			}
+			t.baseStream = st
+		} else {
+			// id is already configurated, this is app stream
+			if t.onChannelHandler != nil {
+				sctpStream := t.changeStreamToSctpStream(st)
+				if sctpStream != nil {
+					t.onChannelHandler(sctpStream)
+				}
 			}
 		}
 	}
@@ -177,7 +189,7 @@ func (t *SctpTransport) Id() string {
 	return t.id
 }
 func (t *SctpTransport) OnChannel(handler func(channel channel.Channel)) {
-	t.onStreamHandler = handler
+	t.onChannelHandler = handler
 }
 
 func (t *SctpTransport) OnClose(handler func()) {

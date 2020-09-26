@@ -11,7 +11,7 @@ import (
 func main() {
 	s := sylph.NewServer()
 	s.OnTransport(func(t sylph.Transport) {
-		fmt.Println("transport opened")
+		fmt.Println("transport opened:", t.Id())
 		t.OnChannel(func(c channel.Channel) {
 			fmt.Println("server on channel")
 

@@ -48,17 +48,15 @@ func (c *Client) Connect(address string, port int, tc TransportConfig) {
 	dtlsConn, err := dtls.DialWithContext(ctx, "udp", addr, config)
 	util.Check(err)
 
-	// TODO: receive id from server
-	t := transport.NewSctpTransport("testtest")
+	t := transport.NewSctpTransport("")
 	t.Init(dtlsConn, true, engine.EngineConfig{
 		HeartbeatRateMisslisec:  tc.HeartbeatRateMisslisec,
 		TimeOutDurationMilliSec: tc.TimeOutDurationMilliSec,
 	})
-	c.transports[t.Id()] = t
-
-	if c.onTransportHandler != nil {
+	t.OnTransportInitialized = func() {
 		c.onTransportHandler(t)
 	}
+	c.transports[t.Id()] = t
 }
 
 func (c *Client) Transport(id string) Transport {

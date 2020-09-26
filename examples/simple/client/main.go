@@ -11,7 +11,7 @@ import (
 func main() {
 	c := sylph.NewClient()
 	c.OnTransport(func(t sylph.Transport) {
-		fmt.Println("client on transport")
+		fmt.Println("client on transport:", t.Id())
 		t.OnChannel(func(c channel.Channel) {
 			fmt.Println("client on channel")
 			c.OnClose(func() {
