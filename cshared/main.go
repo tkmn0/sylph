@@ -1,6 +1,9 @@
 package main
 
-// #include "api.h"
+/*
+#include "api.h"
+#include <stdint.h>
+*/
 import "C"
 import (
 	"unsafe"
@@ -10,119 +13,112 @@ import (
 )
 
 var client *sylph.Client
-var onTransportCallback C.onTransportCallback = nil
+var channels map[string]unsafe.Pointer
+var transports map[string]unsafe.Pointer
+
+func init() {
+	channels = map[string]unsafe.Pointer{}
+	transports = map[string]unsafe.Pointer{}
+}
 
 // TODO
-// - create a interface of server and client (connection)
-// - create a list of connection map[unsafe.Pointer] Connection
-// - create a list of channels map[unsafe.Pointer] channel.Channel
-// - create a list of transports map[unsafe.Pointer] sylph.Transport
-// - create client methods and cast connection to sylph.Client
-// - create server methods and cast connection to sylph.Server
-// - change all methods to calling with unsafe.Pointer (to find the object)
+// Close Transport and realse pointer
+// Release method for unity
 
 //export InitializeClient
-func InitializeClient() {
+func InitializeClient() uintptr {
 	client = sylph.NewClient()
-	client.OnTransport = func(t sylph.Transport) {
-		C.invokeOnTransport(C.CString(t.Id()), onTransportCallback)
-	}
+	return uintptr(unsafe.Pointer(client))
 }
 
 //export Connect
-func Connect(address *C.char, port C.int) {
-	client.Connect(C.GoString(address), int(port))
+func Connect(p unsafe.Pointer, address *C.char, port C.int) {
+	c := (*sylph.Client)(p)
+	c.Connect(C.GoString(address), int(port))
 }
 
 //export OpenChannel
-func OpenChannel(transportId *C.char) {
-	if t := client.Transport(C.GoString(transportId)); t != nil {
-		c := channel.ChannelConfig{}
-		t.OpenChannel(c)
+func OpenChannel(p unsafe.Pointer, unordered bool, reliableType byte, reliableValue uint32) {
+	t := *(*sylph.Transport)(p)
+	config := channel.ChannelConfig{
+		Unordered:        unordered,
+		ReliabliityType:  channel.ReliabilityType(reliableType),
+		ReliabilityValue: uint32(reliableValue),
 	}
+	t.OpenChannel(config)
 }
 
 //export CloseChannel
-func CloseChannel(transportId *C.char, channelId *C.char) {
-	if c := findChannel(transportId, channelId); c != nil {
-		c.Close()
-	}
+func CloseChannel(p unsafe.Pointer) {
+	c := *(*channel.Channel)(p)
+	delete(channels, c.Id())
+	c.Close()
 }
 
 //export SendMessage
-func SendMessage(transportId *C.char, channelId *C.char, message *C.char) bool {
-	if c := findChannel(transportId, channelId); c != nil {
-		_, err := c.SendMessage(C.GoString(message))
-		return err == nil
-	}
-	return false
+func SendMessage(p unsafe.Pointer, message *C.char) bool {
+	c := *(*channel.Channel)(p)
+	_, err := c.SendMessage(C.GoString(message))
+	return err == nil
 }
 
 //export SendData
-func SendData(transportId *C.char, channelId *C.char, ptr unsafe.Pointer, length C.int) bool {
-	if c := findChannel(transportId, channelId); c != nil {
-		_, err := c.SendData(C.GoBytes(ptr, length))
-		return err == nil
-	}
-	return false
+func SendData(p unsafe.Pointer, ptr unsafe.Pointer, length C.int) bool {
+	c := *(*channel.Channel)(p)
+	_, err := c.SendData(C.GoBytes(ptr, length))
+	return err == nil
 }
 
 //export RegisterOnTransportCallback
-func RegisterOnTransportCallback(callback C.onTransportCallback) {
-	onTransportCallback = callback
+func RegisterOnTransportCallback(p unsafe.Pointer, callback C.onTransportCallback) {
+	c := (*sylph.Client)(p)
+	c.OnTransport(func(t sylph.Transport) {
+		ptr := unsafe.Pointer(&t)
+		transports[t.Id()] = ptr
+		C.invokeOnTransport(C.uintptr_t(uintptr(ptr)), callback)
+	})
 }
 
 //export RegisterOnChannelCallback
-func RegisterOnChannelCallback(id *C.char, callback C.onChannelCallback) {
-	if t := client.Transport(C.GoString(id)); t != nil {
-		t.OnChannel(func(channel channel.Channel) {
-			C.invokeOnChannel(C.CString(channel.Id()), callback)
-		})
-	}
+func RegisterOnChannelCallback(p unsafe.Pointer, callback C.onChannelCallback) {
+	t := *(*sylph.Transport)(p)
+	t.OnChannel(func(c channel.Channel) {
+		ptr := unsafe.Pointer(&c)
+		channels[c.Id()] = ptr
+		C.invokeOnChannel(C.uintptr_t(uintptr(ptr)), callback)
+	})
 }
 
 //export RegisterOnChannelClosedCallback
-func RegisterOnChannelClosedCallback(transportId *C.char, channelId *C.char, callback C.onChannelClosedCallback) {
-	if c := findChannel(transportId, channelId); c != nil {
-		c.OnClose(func() {
-			C.invokeOnChannelClosed(callback)
-		})
-	}
+func RegisterOnChannelClosedCallback(p unsafe.Pointer, callback C.onChannelClosedCallback) {
+	c := *(*channel.Channel)(p)
+	c.OnClose(func() {
+		C.invokeOnChannelClosed(callback)
+	})
 }
 
 //export RegisterOnChannelErrorCallback
-func RegisterOnChannelErrorCallback(transportId *C.char, channelId *C.char, callback C.onChannelErrorCallback) {
-	if c := findChannel(transportId, channelId); c != nil {
-		c.OnError(func(err error) {
-			C.invokeOnChannelError(C.CString(err.Error()), callback)
-		})
-	}
+func RegisterOnChannelErrorCallback(p unsafe.Pointer, callback C.onChannelErrorCallback) {
+	c := *(*channel.Channel)(p)
+	c.OnError(func(err error) {
+		C.invokeOnChannelError(C.CString(err.Error()), callback)
+	})
 }
 
 //export RegisterOnMessageCallback
-func RegisterOnMessageCallback(transportId *C.char, channelId *C.char, callback C.onMessageCallback) {
-	if c := findChannel(transportId, channelId); c != nil {
-		c.OnMessage(func(message string) {
-			C.invokeOnMessage(C.CString(message), callback)
-		})
-	}
+func RegisterOnMessageCallback(p unsafe.Pointer, callback C.onMessageCallback) {
+	c := *(*channel.Channel)(p)
+	c.OnMessage(func(message string) {
+		C.invokeOnMessage(C.CString(message), callback)
+	})
 }
 
 //export RegisterOnDataCallback
-func RegisterOnDataCallback(trasnportId *C.char, channelId *C.char, callback C.onDataCallback) {
-	if c := findChannel(trasnportId, channelId); c != nil {
-		c.OnData(func(data []byte) {
-			C.invokeOnData(unsafe.Pointer(&data[0]), C.int(len(data)), callback)
-		})
-	}
-}
-
-func findChannel(transportId *C.char, channelId *C.char) channel.Channel {
-	t := client.Transport(C.GoString(transportId))
-	if t == nil {
-		return nil
-	}
-	return t.Channel(C.GoString(channelId))
+func RegisterOnDataCallback(p unsafe.Pointer, callback C.onDataCallback) {
+	c := *(*channel.Channel)(p)
+	c.OnData(func(data []byte) {
+		C.invokeOnData(unsafe.Pointer(&data[0]), C.int(len(data)), callback)
+	})
 }
 
 func main() {}

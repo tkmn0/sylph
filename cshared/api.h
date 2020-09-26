@@ -1,8 +1,10 @@
+#include <stdint.h>
+
 // Callbacks
 // handle OnTransport with transport id
-typedef void (*onTransportCallback)(const char *);
+typedef void (*onTransportCallback)(const uintptr_t);
 // handle OnChannel with trasnsport id
-typedef void (*onChannelCallback)(const char *);
+typedef void (*onChannelCallback)(const uintptr_t);
 // handle OnChannelClosed with transport id
 typedef void (*onChannelClosedCallback)();
 // handle OnChannelError with transport id
@@ -14,12 +16,12 @@ typedef void (*onDataCallback)(const void *, const int length);
 
 // Invokes
 // invoke OnTransport with transport id
-static inline void invokeOnTransport(const char *id, onTransportCallback f){
-    f(id);
+static inline void invokeOnTransport(const uintptr_t ptr, onTransportCallback f){
+    f(ptr);
 }
 
-static inline void invokeOnChannel(const char *id, onChannelCallback f){
-    f(id);
+static inline void invokeOnChannel(const uintptr_t ptr, onChannelCallback f){
+    f(ptr);
 }
 
 static inline void invokeOnChannelClosed(onChannelClosedCallback f){
