@@ -29,7 +29,7 @@ func NewStreamEngine() *StreamEngine {
 		builder:                 NewMessageBuilder(),
 		parcer:                  NewMessageParcer(),
 		heartbeatRateMillisec:   1000,
-		healthCheckRateMillisec: 200,
+		healthCheckRateMillisec: 100,
 	}
 }
 
