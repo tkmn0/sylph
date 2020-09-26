@@ -61,5 +61,6 @@ func main() {
 
 	c.Connect("127.0.0.1", 4444)
 	for {
+		time.Sleep(1)
 	}
 }
