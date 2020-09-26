@@ -9,25 +9,27 @@ import (
 )
 
 type StreamEngine struct {
-	close                 chan bool
-	err                   chan error
-	builder               *MessageBuilder
-	parcer                *MessageParcer
-	lastHeartbeat         time.Time
-	isClosed              bool
-	lock                  sync.RWMutex
-	heartbeatRateMillisec time.Duration
-	OnStreamClosed        func(stream stream.Stream)
-	OnStream              func(stream stream.Stream, streamType stream.StreamType)
+	close                   chan bool
+	err                     chan error
+	builder                 *MessageBuilder
+	parcer                  *MessageParcer
+	lastHeartbeat           time.Time
+	isClosed                bool
+	lock                    sync.RWMutex
+	heartbeatRateMillisec   time.Duration
+	healthCheckRateMillisec time.Duration
+	OnStreamClosed          func(stream stream.Stream)
+	OnStream                func(stream stream.Stream, streamType stream.StreamType)
 }
 
 func NewStreamEngine() *StreamEngine {
 	return &StreamEngine{
-		close:                 make(chan bool),
-		err:                   make(chan error),
-		builder:               NewMessageBuilder(),
-		parcer:                NewMessageParcer(),
-		heartbeatRateMillisec: 1000,
+		close:                   make(chan bool),
+		err:                     make(chan error),
+		builder:                 NewMessageBuilder(),
+		parcer:                  NewMessageParcer(),
+		heartbeatRateMillisec:   1000,
+		healthCheckRateMillisec: 200,
 	}
 }
 
@@ -130,7 +132,7 @@ loop:
 }
 
 func (e *StreamEngine) handleHealthCheck() {
-	ticker := time.NewTicker(time.Millisecond * e.heartbeatRateMillisec)
+	ticker := time.NewTicker(time.Millisecond * e.healthCheckRateMillisec)
 loop:
 	for {
 		select {
