@@ -20,7 +20,6 @@ type SctpTransport struct {
 	onCloseHandler  func()
 	engines         map[string]*engine.StreamEngine
 	close           chan bool
-	isClosed        bool
 	streamCount     uint16
 }
 
@@ -30,7 +29,6 @@ func NewSctpTransport(id string) *SctpTransport {
 		sctpStreams: map[string]*stream.SctpStream{},
 		engines:     map[string]*engine.StreamEngine{},
 		close:       make(chan bool),
-		isClosed:    false,
 		streamCount: 0,
 	}
 }
@@ -60,7 +58,7 @@ func (t *SctpTransport) Init(conn net.Conn, isClient bool) error {
 
 	go func() {
 		<-t.close
-		t.isClosed = true
+		t.close = nil
 		if t.onCloseHandler != nil {
 			t.onCloseHandler()
 		}
@@ -132,7 +130,7 @@ func (t *SctpTransport) OpenChannel(c channel.ChannelConfig) error {
 
 func (t *SctpTransport) onStreamClosed(s stream.Stream) {
 	if t.baseStream.StreamId() == s.StreamId() {
-		if !t.isClosed {
+		if t.close != nil {
 			t.close <- true
 		}
 	}
@@ -199,11 +197,11 @@ func (t *SctpTransport) Close() {
 		s.Close()
 	}
 
-	if !t.isClosed {
+	if t.close != nil {
 		t.close <- true
 	}
 }
 
 func (t *SctpTransport) IsClosed() bool {
-	return t.isClosed
+	return t.close == nil
 }
