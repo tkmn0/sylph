@@ -86,4 +86,7 @@ func (s *Server) Close() {
 		s.isClosed = true
 		s.close <- true
 	}
+	for _, t := range s.transports {
+		t.Close()
+	}
 }

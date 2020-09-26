@@ -67,3 +67,10 @@ func (c *Client) Transport(id string) Transport {
 func (c *Client) OnTransport(handler func(t Transport)) {
 	c.onTransportHandler = handler
 }
+
+func (c *Client) Close() {
+	for _, t := range c.transports {
+		t.Close()
+	}
+	c.cancel()
+}

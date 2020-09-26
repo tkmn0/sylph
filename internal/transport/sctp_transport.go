@@ -193,10 +193,12 @@ func (t *SctpTransport) Channel(id string) channel.Channel {
 }
 
 func (t *SctpTransport) SetConfig() {}
+
 func (t *SctpTransport) Close() {
-	for _, e := range t.engines {
-		e.Stop()
+	for _, s := range t.sctpStreams {
+		s.Close()
 	}
+
 	if !t.isClosed {
 		t.close <- true
 	}

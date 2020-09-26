@@ -41,6 +41,7 @@ func main() {
 					if counter == 5 {
 						// c.Close()
 						// t.Close()
+						s.Close()
 						break
 					}
 					counter++
