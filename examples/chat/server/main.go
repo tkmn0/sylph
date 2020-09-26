@@ -10,7 +10,7 @@ import (
 
 func main() {
 	hub := util.NewHub()
-	s := sylph.NewServer("127.0.0.1", 4444)
+	s := sylph.NewServer()
 
 	s.OnTransport(func(t sylph.Transport) {
 		t.OnChannel(func(c channel.Channel) {
@@ -21,6 +21,9 @@ func main() {
 		})
 	})
 
-	go s.Run()
+	go s.Run("127.0.0.1", 4444, sylph.TransportConfig{
+		HeartbeatRateMisslisec:  1000,
+		TimeOutDurationMilliSec: 300,
+	})
 	hub.Chat()
 }

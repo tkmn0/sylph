@@ -32,7 +32,7 @@ func NewListenner() *Listener {
 	}
 }
 
-func (l *Listener) Listen(c *ListenerConfig) {
+func (l *Listener) Listen(c ListenerConfig) {
 	// Prepare the IP to connect to
 	l.addr = &net.UDPAddr{IP: net.ParseIP(c.address), Port: c.port}
 

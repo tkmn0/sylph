@@ -59,7 +59,10 @@ func main() {
 		t.OpenChannel(c)
 	})
 
-	c.Connect("127.0.0.1", 4444)
+	c.Connect("127.0.0.1", 4444, sylph.TransportConfig{
+		HeartbeatRateMisslisec:  1000,
+		TimeOutDurationMilliSec: 300,
+	})
 	for {
 		time.Sleep(1)
 	}

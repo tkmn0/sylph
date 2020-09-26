@@ -3,35 +3,35 @@ package sylph
 import (
 	"fmt"
 
+	"github.com/tkmn0/sylph/internal/engine"
+
 	"github.com/google/uuid"
 	"github.com/tkmn0/sylph/internal/transport"
 )
 
 type Server struct {
 	listenner          *Listener
-	ListenerConfig     *ListenerConfig
+	listenerConfig     ListenerConfig
 	transports         []Transport
 	onTransportHandler func(transport Transport)
 	close              chan bool
 	isClosed           bool
 }
 
-func NewServer(address string, port int) *Server {
-	l := NewListenner()
-	c := &ListenerConfig{
-		address: address,
-		port:    port,
-	}
+func NewServer() *Server {
 	return &Server{
-		listenner:      l,
-		ListenerConfig: c,
-		transports:     []Transport{},
-		close:          make(chan bool),
+		listenner:  NewListenner(),
+		transports: []Transport{},
+		close:      make(chan bool),
 	}
 }
 
-func (s *Server) Run() {
-	s.listenner.Listen(s.ListenerConfig)
+func (s *Server) Run(address string, port int, tc TransportConfig) {
+	c := ListenerConfig{
+		address: address,
+		port:    port,
+	}
+	s.listenner.Listen(c)
 loop:
 	for {
 		select {
@@ -43,7 +43,10 @@ loop:
 			}
 
 			sctp := transport.NewSctpTransport(id)
-			err = sctp.Init(conn, false)
+			err = sctp.Init(conn, false, engine.EngineConfig{
+				HeartbeatRateMisslisec:  tc.HeartbeatRateMisslisec,
+				TimeOutDurationMilliSec: tc.TimeOutDurationMilliSec,
+			})
 
 			go sctp.AcceptStreamLoop()
 

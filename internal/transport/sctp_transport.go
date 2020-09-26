@@ -21,6 +21,7 @@ type SctpTransport struct {
 	engines         map[string]*engine.StreamEngine
 	close           chan bool
 	streamCount     uint16
+	engineConfig    engine.EngineConfig
 }
 
 func NewSctpTransport(id string) *SctpTransport {
@@ -33,11 +34,12 @@ func NewSctpTransport(id string) *SctpTransport {
 	}
 }
 
-func (t *SctpTransport) Init(conn net.Conn, isClient bool) error {
+func (t *SctpTransport) Init(conn net.Conn, isClient bool, engienConfig engine.EngineConfig) error {
 	config := sctp.Config{
 		NetConn:       conn,
 		LoggerFactory: logging.NewDefaultLoggerFactory(),
 	}
+	t.engineConfig = engienConfig
 
 	if isClient {
 		a, err := sctp.Client(config)
@@ -79,11 +81,11 @@ func (t *SctpTransport) AcceptStreamLoop() {
 				return
 			}
 			sctpStream := stream.NewSctpStream(st, t.id)
-			e := engine.NewStreamEngine()
+			e := engine.NewStreamEngine(t.engineConfig)
 			e.OnStreamClosed = t.onStreamClosed
 			e.OnStream = t.onStreamWithType
 			t.engines[sctpStream.StreamId()] = e
-			e.Run(sctpStream, stream.StreamTypeUnKnown)
+			e.Run(sctpStream, stream.StreamTypeUnKnown, t.engineConfig)
 		}
 	}
 }
@@ -97,10 +99,10 @@ func (t *SctpTransport) openBaseChannel() {
 	}
 
 	sctpStream := stream.NewSctpStream(st, t.id)
-	e := engine.NewStreamEngine()
+	e := engine.NewStreamEngine(t.engineConfig)
 	e.OnStreamClosed = t.onStreamClosed
 	t.engines[sctpStream.StreamId()] = e
-	e.Run(sctpStream, stream.StreamTypeBase)
+	e.Run(sctpStream, stream.StreamTypeBase, t.engineConfig)
 
 	t.sctpStreams[sctpStream.StreamId()] = sctpStream
 	t.baseStream = sctpStream
@@ -116,10 +118,10 @@ func (t *SctpTransport) OpenChannel(c channel.ChannelConfig) error {
 	}
 
 	sctpStream := stream.NewSctpStream(s, t.id)
-	e := engine.NewStreamEngine()
+	e := engine.NewStreamEngine(t.engineConfig)
 	e.OnStreamClosed = t.onStreamClosed
 	t.engines[sctpStream.StreamId()] = e
-	e.Run(sctpStream, stream.StreamTypeApp)
+	e.Run(sctpStream, stream.StreamTypeApp, t.engineConfig)
 
 	t.sctpStreams[sctpStream.StreamId()] = sctpStream
 	if t.onStreamHandler != nil {

@@ -6,6 +6,8 @@ import (
 	"net"
 	"time"
 
+	"github.com/tkmn0/sylph/internal/engine"
+
 	"github.com/pion/dtls/v2"
 	"github.com/pion/dtls/v2/pkg/crypto/selfsign"
 	"github.com/tkmn0/sylph/internal/transport"
@@ -25,7 +27,7 @@ func NewClient() *Client {
 	}
 }
 
-func (c *Client) Connect(address string, port int) {
+func (c *Client) Connect(address string, port int, tc TransportConfig) {
 	// Prepare the IP to connect to
 	addr := &net.UDPAddr{IP: net.ParseIP(address), Port: port}
 
@@ -48,7 +50,10 @@ func (c *Client) Connect(address string, port int) {
 
 	// TODO: receive id from server
 	t := transport.NewSctpTransport("testtest")
-	t.Init(dtlsConn, true)
+	t.Init(dtlsConn, true, engine.EngineConfig{
+		HeartbeatRateMisslisec:  tc.HeartbeatRateMisslisec,
+		TimeOutDurationMilliSec: tc.TimeOutDurationMilliSec,
+	})
 	c.transports[t.Id()] = t
 
 	if c.onTransportHandler != nil {

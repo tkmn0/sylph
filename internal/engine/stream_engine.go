@@ -17,11 +17,12 @@ type StreamEngine struct {
 	lock                    sync.RWMutex
 	heartbeatRateMillisec   time.Duration
 	healthCheckRateMillisec time.Duration
+	timeOutDurationMillisec time.Duration
 	OnStreamClosed          func(stream stream.Stream)
 	OnStream                func(stream stream.Stream, streamType stream.StreamType)
 }
 
-func NewStreamEngine() *StreamEngine {
+func NewStreamEngine(config EngineConfig) *StreamEngine {
 	return &StreamEngine{
 		close:                   make(chan bool),
 		err:                     make(chan error),
@@ -29,10 +30,13 @@ func NewStreamEngine() *StreamEngine {
 		parcer:                  NewMessageParcer(),
 		heartbeatRateMillisec:   1000,
 		healthCheckRateMillisec: 100,
+		timeOutDurationMillisec: 300,
 	}
 }
 
-func (e *StreamEngine) Run(s stream.Stream, t stream.StreamType) {
+func (e *StreamEngine) Run(s stream.Stream, t stream.StreamType, config EngineConfig) {
+	e.heartbeatRateMillisec = config.HeartbeatRateMisslisec
+	e.timeOutDurationMillisec = config.TimeOutDurationMilliSec
 	s.OnDataSendHandler(func(data []byte) (int, error) {
 		return s.WriteData(e.builder.BuildMessage(data, MessageTypeBody))
 	})
@@ -131,7 +135,7 @@ loop:
 		<-ticker.C
 		e.lock.Lock()
 		if !e.lastHeartbeat.IsZero() {
-			if time.Since(e.lastHeartbeat) > time.Millisecond*(e.heartbeatRateMillisec+300) {
+			if time.Since(e.lastHeartbeat) > time.Millisecond*(e.heartbeatRateMillisec+e.timeOutDurationMillisec) {
 				if e.close != nil {
 					e.close <- true
 				}
