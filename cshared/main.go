@@ -37,7 +37,7 @@ func InitializeClient() uintptr {
 func Connect(p unsafe.Pointer, address *C.char, port C.int, heartbeatRate int64, timeOutDuration int64) {
 	c := (*sylph.Client)(p)
 	c.Connect(C.GoString(address), int(port), sylph.TransportConfig{
-		HeartbeatRateMillisec:  time.Duration(heartbeatRate),
+		HeartbeatRateMillisec:   time.Duration(heartbeatRate),
 		TimeOutDurationMilliSec: time.Duration(timeOutDuration),
 	})
 }
@@ -52,7 +52,7 @@ func InitializeServer() uintptr {
 func RunServer(p unsafe.Pointer, address *C.char, port C.int, heartbeatRate int64, timeOutDuration int64) {
 	s := (*sylph.Server)(p)
 	go s.Run(C.GoString(address), int(port), sylph.TransportConfig{
-		HeartbeatRateMillisec:  time.Duration(heartbeatRate),
+		HeartbeatRateMillisec:   time.Duration(heartbeatRate),
 		TimeOutDurationMilliSec: time.Duration(timeOutDuration),
 	})
 }
@@ -72,6 +72,12 @@ func OpenChannel(p unsafe.Pointer, unordered bool, reliableType byte, reliableVa
 		ReliabilityValue: uint32(reliableValue),
 	}
 	t.OpenChannel(config)
+}
+
+//export CloseTransport
+func CloseTransport(p unsafe.Pointer) {
+	t := *(*sylph.Transport)(p)
+	t.Close()
 }
 
 //export CloseChannel

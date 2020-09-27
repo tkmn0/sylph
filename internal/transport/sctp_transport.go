@@ -127,13 +127,14 @@ func (t *SctpTransport) OpenChannel(c channel.ChannelConfig) error {
 }
 
 func (t *SctpTransport) onStreamClosed(s stream.Stream) {
+
+	s.CloseStream(t.baseStream.StreamId() != s.StreamId())
+
 	if t.baseStream.StreamId() == s.StreamId() {
 		if t.close != nil {
 			t.close <- true
 		}
 	}
-
-	s.CloseStream(t.baseStream.StreamId() != s.StreamId())
 
 	if e, exists := t.engines[s.StreamId()]; exists {
 		e.Stop()
