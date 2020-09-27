@@ -60,7 +60,7 @@ func main() {
 	})
 
 	c.Connect("127.0.0.1", 4444, sylph.TransportConfig{
-		HeartbeatRateMisslisec:  1000,
+		HeartbeatRateMillisec:  1000,
 		TimeOutDurationMilliSec: 300,
 	})
 	for {

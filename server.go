@@ -44,7 +44,7 @@ loop:
 
 			sctp := transport.NewSctpTransport(id)
 			err = sctp.Init(conn, false, engine.EngineConfig{
-				HeartbeatRateMisslisec:  tc.HeartbeatRateMisslisec,
+				HeartbeatRateMillisec:  tc.HeartbeatRateMillisec,
 				TimeOutDurationMilliSec: tc.TimeOutDurationMilliSec,
 			})
 

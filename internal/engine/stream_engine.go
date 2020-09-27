@@ -36,7 +36,7 @@ func NewStreamEngine(config EngineConfig) *StreamEngine {
 }
 
 func (e *StreamEngine) Run(s stream.Stream, t stream.StreamType, config EngineConfig, transportId string) {
-	e.heartbeatRateMillisec = config.HeartbeatRateMisslisec
+	e.heartbeatRateMillisec = config.HeartbeatRateMillisec
 	e.timeOutDurationMillisec = config.TimeOutDurationMilliSec
 	s.OnDataSendHandler(func(data []byte) (int, error) {
 		return s.WriteData(e.builder.BuildMessage(data, MessageTypeBody))

@@ -5,6 +5,6 @@ import (
 )
 
 type EngineConfig struct {
-	HeartbeatRateMisslisec  time.Duration
+	HeartbeatRateMillisec  time.Duration
 	TimeOutDurationMilliSec time.Duration
 }

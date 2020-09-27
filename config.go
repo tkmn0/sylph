@@ -5,6 +5,6 @@ import (
 )
 
 type TransportConfig struct {
-	HeartbeatRateMisslisec  time.Duration
+	HeartbeatRateMillisec   time.Duration
 	TimeOutDurationMilliSec time.Duration
 }

@@ -50,7 +50,7 @@ func (c *Client) Connect(address string, port int, tc TransportConfig) {
 
 	t := transport.NewSctpTransport("")
 	t.Init(dtlsConn, true, engine.EngineConfig{
-		HeartbeatRateMisslisec:  tc.HeartbeatRateMisslisec,
+		HeartbeatRateMillisec:  tc.HeartbeatRateMillisec,
 		TimeOutDurationMilliSec: tc.TimeOutDurationMilliSec,
 	})
 	t.OnTransportInitialized = func() {
