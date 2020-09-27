@@ -6,6 +6,7 @@ package main
 */
 import "C"
 import (
+	"time"
 	"unsafe"
 
 	"github.com/tkmn0/sylph"
@@ -33,21 +34,27 @@ func InitializeClient() uintptr {
 }
 
 //export Connect
-func Connect(p unsafe.Pointer, address *C.char, port C.int) {
+func Connect(p unsafe.Pointer, address *C.char, port C.int, heartbeatRate int64, timeOutDuration int64) {
 	c := (*sylph.Client)(p)
-	c.Connect(C.GoString(address), int(port))
+	c.Connect(C.GoString(address), int(port), sylph.TransportConfig{
+		HeartbeatRateMisslisec:  time.Duration(heartbeatRate),
+		TimeOutDurationMilliSec: time.Duration(timeOutDuration),
+	})
 }
 
 //export InitializeServer
-func InitializeServer(address *C.char, port C.int) uintptr {
-	server = sylph.NewServer(C.GoString(address), int(port))
+func InitializeServer() uintptr {
+	server = sylph.NewServer()
 	return uintptr(unsafe.Pointer(server))
 }
 
 //export RunServer
-func RunServer(p unsafe.Pointer) {
+func RunServer(p unsafe.Pointer, address *C.char, port C.int, heartbeatRate int64, timeOutDuration int64) {
 	s := (*sylph.Server)(p)
-	go s.Run()
+	go s.Run(C.GoString(address), int(port), sylph.TransportConfig{
+		HeartbeatRateMisslisec:  time.Duration(heartbeatRate),
+		TimeOutDurationMilliSec: time.Duration(timeOutDuration),
+	})
 }
 
 //export StopServer
@@ -105,6 +112,14 @@ func RegisterOnTransportCallback(p unsafe.Pointer, callback C.onTransportCallbac
 			C.invokeOnTransport(C.uintptr_t(uintptr(ptr)), callback)
 		})
 	}
+}
+
+//export RegisterOnTransportClosedCallback
+func RegisterOnTransportClosedCallback(p unsafe.Pointer, callback C.onTransportClosedCallback) {
+	t := *(*sylph.Transport)(p)
+	t.OnClose(func() {
+		C.invokeOnTransportClosed(callback)
+	})
 }
 
 //export RegisterOnChannelCallback

@@ -1,13 +1,15 @@
 #include <stdint.h>
 
 // Callbacks
-// handle OnTransport with transport id
+// handle OnTransport 
 typedef void (*onTransportCallback)(const uintptr_t);
+// handle OnTransportClosed 
+typedef void (*onTransportClosedCallback)();
 // handle OnChannel with trasnsport id
 typedef void (*onChannelCallback)(const uintptr_t);
-// handle OnChannelClosed with transport id
+// handle OnChannelClosed 
 typedef void (*onChannelClosedCallback)();
-// handle OnChannelError with transport id
+// handle OnChannelError 
 typedef void (*onChannelErrorCallback)(const char *);
 // handle OnMessage with trasnport id
 typedef void (*onMessageCallback)(const char *);
@@ -15,9 +17,13 @@ typedef void (*onMessageCallback)(const char *);
 typedef void (*onDataCallback)(const void *, const int length);
 
 // Invokes
-// invoke OnTransport with transport id
+// invoke OnTransport 
 static inline void invokeOnTransport(const uintptr_t ptr, onTransportCallback f){
     f(ptr);
+}
+
+static inline void invokeOnTransportClosed(onTransportClosedCallback f){
+    f();
 }
 
 static inline void invokeOnChannel(const uintptr_t ptr, onChannelCallback f){
