@@ -44,11 +44,9 @@ loop:
 
 			sctp := transport.NewSctpTransport(id)
 			err = sctp.Init(conn, false, engine.EngineConfig{
-				HeartbeatRateMillisec:  tc.HeartbeatRateMillisec,
+				HeartbeatRateMillisec:   tc.HeartbeatRateMillisec,
 				TimeOutDurationMilliSec: tc.TimeOutDurationMilliSec,
 			})
-
-			go sctp.AcceptStreamLoop()
 
 			if err != nil {
 				fmt.Println("sctp initialize error")
@@ -58,6 +56,8 @@ loop:
 			if s.onTransportHandler != nil {
 				s.onTransportHandler(sctp)
 			}
+
+			go sctp.AcceptStreamLoop()
 		case <-s.close:
 			s.listenner.Close()
 			break loop

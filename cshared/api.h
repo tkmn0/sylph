@@ -1,47 +1,47 @@
-#include <stdint.h>
+#include <stdbool.h>
 
 // Callbacks
 // handle OnTransport 
-typedef void (*onTransportCallback)(const uintptr_t);
+typedef void (*onTransportCallback)(const int id, const char* transportId, const bool isServer);
 // handle OnTransportClosed 
-typedef void (*onTransportClosedCallback)();
+typedef void (*onTransportClosedCallback)(const char* transportId, const bool isServer);
 // handle OnChannel with trasnsport id
-typedef void (*onChannelCallback)(const uintptr_t);
+typedef void (*onChannelCallback)(const char* transportId, const char* channelId);
 // handle OnChannelClosed 
-typedef void (*onChannelClosedCallback)();
+typedef void (*onChannelClosedCallback)(const char* channelId);
 // handle OnChannelError 
-typedef void (*onChannelErrorCallback)(const char *);
+typedef void (*onChannelErrorCallback)(const char* channelId, const char* message);
 // handle OnMessage with trasnport id
-typedef void (*onMessageCallback)(const char *);
+typedef void (*onMessageCallback)(const char* channelId, const char* message);
 // handle OnData with trasnport id
-typedef void (*onDataCallback)(const void *, const int length);
+typedef void (*onDataCallback)(const char* channelId, const void *data, const int length);
 
 // Invokes
 // invoke OnTransport 
-static inline void invokeOnTransport(const uintptr_t ptr, onTransportCallback f){
-    f(ptr);
+static inline void invokeOnTransport(const int id, const char* transportId, bool isServer, onTransportCallback f){
+    f(id, transportId, isServer);
 }
 
-static inline void invokeOnTransportClosed(onTransportClosedCallback f){
-    f();
+static inline void invokeOnTransportClosed(const char* transportId, bool isServer, onTransportClosedCallback f){
+    f(transportId, isServer);
 }
 
-static inline void invokeOnChannel(const uintptr_t ptr, onChannelCallback f){
-    f(ptr);
+static inline void invokeOnChannel(const char* transportId, const char* channelId, onChannelCallback f){
+    f(transportId, channelId);
 }
 
-static inline void invokeOnChannelClosed(onChannelClosedCallback f){
-    f();
+static inline void invokeOnChannelClosed(const char* channelId, onChannelClosedCallback f){
+    f(channelId);
 }
 
-static inline void invokeOnChannelError(const char *message, onChannelErrorCallback f){
-    f(message);
+static inline void invokeOnChannelError(const char* channelId, const char *message, onChannelErrorCallback f){
+    f(channelId, message);
 }
 
-static inline void invokeOnMessage(const char *message, onMessageCallback f){
-    f(message);
+static inline void invokeOnMessage(const char* channelId, const char *message, onMessageCallback f){
+    f(channelId, message);
 }
 
-static inline void invokeOnData(const void *data, const int length, onDataCallback f){
-    f(data, length);
+static inline void invokeOnData(const char* channelId, const void *data, const int length, onDataCallback f){
+    f(channelId, data, length);
 }

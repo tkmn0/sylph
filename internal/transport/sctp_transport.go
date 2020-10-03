@@ -159,7 +159,7 @@ func (t *SctpTransport) onStreamInitialized(st stream.Stream, message engine.Ini
 	} else {
 		// client recieved
 		if t.id == "" {
-			t.id = message.TransportId
+			t.id = message.TransportId + "-client"
 			// id not configurated, this is base stream
 			if t.OnTransportInitialized != nil {
 				t.OnTransportInitialized()
