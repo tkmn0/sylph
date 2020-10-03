@@ -91,10 +91,6 @@ func setupTransport(t sylph.Transport, isServer bool) {
 	})
 }
 
-// TODO
-// Close Transport and realse pointer
-// Release method for unity
-
 //export Initialize
 func Initialize() {
 	initializeInternal()
@@ -235,91 +231,36 @@ func DestroyAll() {
 //export RegisterOnTransportCallback
 func RegisterOnTransportCallback(callback C.onTransportCallback) {
 	onTransportCallback = callback
-	/*
-		if isServer {
-			s := (*sylph.Server)(p)
-			s.OnTransport(func(t sylph.Transport) {
-				ptr := unsafe.Pointer(&t)
-				transports[t.Id()] = ptr
-				C.invokeOnTransport(C.uintptr_t(uintptr(ptr)), callback)
-			})
-		} else {
-			c := (*sylph.Client)(p)
-			c.OnTransport(func(t sylph.Transport) {
-				ptr := unsafe.Pointer(&t)
-				transports[t.Id()] = ptr
-				C.invokeOnTransport(C.uintptr_t(uintptr(ptr)), callback)
-			})
-		}
-	*/
 }
 
 //export RegisterOnTransportClosedCallback
 func RegisterOnTransportClosedCallback(callback C.onTransportClosedCallback) {
 	onTransportClosedCallback = callback
-	/*
-		t := *(*sylph.Transport)(p)
-		t.OnClose(func() {
-			C.invokeOnTransportClosed(callback)
-		})
-	*/
 }
 
 //export RegisterOnChannelCallback
 func RegisterOnChannelCallback(callback C.onChannelCallback) {
 	onChannelCallback = callback
-	/*
-		t := *(*sylph.Transport)(p)
-		t.OnChannel(func(c channel.Channel) {
-			ptr := unsafe.Pointer(&c)
-			channels[c.Id()] = ptr
-			C.invokeOnChannel(C.uintptr_t(uintptr(ptr)), callback)
-		})
-	*/
 }
 
 //export RegisterOnChannelClosedCallback
 func RegisterOnChannelClosedCallback(callback C.onChannelClosedCallback) {
 	onChannelClosedCallback = callback
-	/*
-		c := *(*channel.Channel)(p)
-		c.OnClose(func() {
-			C.invokeOnChannelClosed(callback)
-		})
-	*/
 }
 
 //export RegisterOnChannelErrorCallback
 func RegisterOnChannelErrorCallback(callback C.onChannelErrorCallback) {
 	onChannelErrorCallback = callback
-	/*
-		c := *(*channel.Channel)(p)
-		c.OnError(func(err error) {
-			C.invokeOnChannelError(C.CString(err.Error()), callback)
-		})
-	*/
 }
 
 //export RegisterOnMessageCallback
 func RegisterOnMessageCallback(callback C.onMessageCallback) {
 	onMessageCallback = callback
-	/*
-		c := *(*channel.Channel)(p)
-		c.OnMessage(func(message string) {
-			C.invokeOnMessage(C.CString(message), callback)
-		})
-	*/
 }
 
 //export RegisterOnDataCallback
 func RegisterOnDataCallback(callback C.onDataCallback) {
 	onDataCallback = callback
-	/*
-		c := *(*channel.Channel)(p)
-		c.OnData(func(data []byte) {
-			C.invokeOnData(unsafe.Pointer(&data[0]), C.int(len(data)), callback)
-		})
-	*/
 }
 
 func main() {}
