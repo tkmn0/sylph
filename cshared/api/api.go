@@ -10,12 +10,24 @@ import (
 
 var clients []*sylph.Client
 var servers []*sylph.Server
+var transports map[uintptr]sylph.Transport
+var channels map[uintptr]channel.Channel
 var callbackHandler *handler.CallbackHandler
 
 func Initialize() {
 	clients = make([]*sylph.Client, 0)
 	servers = make([]*sylph.Server, 0)
+	transports = make(map[uintptr]sylph.Transport)
+	channels = make(map[uintptr]channel.Channel)
 	callbackHandler = handler.NewCallbackHandler()
+
+	callbackHandler.OnTransport(func(t sylph.Transport, p uintptr) {
+		transports[p] = t
+	})
+
+	callbackHandler.OnChannel(func(c channel.Channel, p uintptr) {
+		channels[p] = c
+	})
 }
 
 func InitializeClient() uintptr {
@@ -57,32 +69,34 @@ func StopServer(p unsafe.Pointer) {
 }
 
 func OpenChannel(p unsafe.Pointer, config channel.ChannelConfig) {
-	t := *(*sylph.Transport)(p)
-	if t == nil {
+	t, exists := transports[uintptr(p)]
+
+	if !exists {
 		return
 	}
 	t.OpenChannel(config)
 }
 
 func CloseTransport(p unsafe.Pointer) {
-	t := *(*sylph.Transport)(p)
-	if t == nil {
+	t, exists := transports[uintptr(p)]
+
+	if !exists {
 		return
 	}
 	t.Close()
 }
 
 func CloseChannel(p unsafe.Pointer) {
-	c := *(*channel.Channel)(p)
-	if c == nil {
+	c, exists := channels[uintptr(p)]
+	if !exists {
 		return
 	}
 	c.Close()
 }
 
 func SendMessage(p unsafe.Pointer, message string) bool {
-	c := *(*channel.Channel)(p)
-	if c == nil {
+	c, exists := channels[uintptr(p)]
+	if !exists {
 		return false
 	}
 	_, err := c.SendMessage(message)
@@ -90,8 +104,8 @@ func SendMessage(p unsafe.Pointer, message string) bool {
 }
 
 func SendData(p unsafe.Pointer, data []byte) bool {
-	c := *(*channel.Channel)(p)
-	if c == nil {
+	c, exists := channels[uintptr(p)]
+	if !exists {
 		return false
 	}
 	_, err := c.SendData(data)

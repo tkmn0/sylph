@@ -20,17 +20,16 @@ const (
 )
 
 type CallbackHandler struct {
-	converter *converter.Converter
-	// server/client events
-	onTransportEventQueues map[uintptr]*queue.Queue
-	// transport events
+	converter                    *converter.Converter
+	onTransportEventQueues       map[uintptr]*queue.Queue
 	onTransportClosedEventQueues map[uintptr]*queue.Queue
 	onChannelEventQueues         map[uintptr]*queue.Queue
-	// channel events
-	onChannelClosedEventQueues  map[uintptr]*queue.Queue
-	onChannelErrorEventQueues   map[uintptr]*queue.Queue
-	onChannelMessageEventQueues map[uintptr]*queue.Queue
-	onChannelDataEventQueues    map[uintptr]*queue.Queue
+	onChannelClosedEventQueues   map[uintptr]*queue.Queue
+	onChannelErrorEventQueues    map[uintptr]*queue.Queue
+	onChannelMessageEventQueues  map[uintptr]*queue.Queue
+	onChannelDataEventQueues     map[uintptr]*queue.Queue
+	onTransportHandler           func(t sylph.Transport, p uintptr)
+	onChannelHandler             func(c channel.Channel, p uintptr)
 }
 
 func NewCallbackHandler() *CallbackHandler {
@@ -46,11 +45,22 @@ func NewCallbackHandler() *CallbackHandler {
 	}
 }
 
+func (h *CallbackHandler) OnTransport(handler func(t sylph.Transport, p uintptr)) {
+	h.onTransportHandler = handler
+}
+
+func (h *CallbackHandler) OnChannel(handler func(c channel.Channel, p uintptr)) {
+	h.onChannelHandler = handler
+}
+
 func (h *CallbackHandler) SetupServerEvents(server *sylph.Server) {
 	onTransportQueue := queue.NewQueue()
 	h.onTransportEventQueues[uintptr(unsafe.Pointer(server))] = onTransportQueue
 
 	server.OnTransport(func(t sylph.Transport) {
+		if h.onTransportHandler != nil {
+			h.onTransportHandler(t, uintptr(unsafe.Pointer(&t)))
+		}
 		h.setupTransportEvents(&t)
 		onTransportQueue.Enqueue(uintptr(uintptr(unsafe.Pointer(&t))))
 	})
@@ -61,6 +71,9 @@ func (h *CallbackHandler) SetupClientEvents(client *sylph.Client) {
 	h.onTransportEventQueues[uintptr(unsafe.Pointer(client))] = onTransportQueue
 
 	client.OnTransport(func(t sylph.Transport) {
+		if h.onTransportHandler != nil {
+			h.onTransportHandler(t, uintptr(unsafe.Pointer(&t)))
+		}
 		h.setupTransportEvents(&t)
 		onTransportQueue.Enqueue(uintptr(unsafe.Pointer(&t)))
 	})
@@ -70,7 +83,6 @@ func (h *CallbackHandler) setupTransportEvents(transport *sylph.Transport) {
 	onTransportClosedQueue := queue.NewQueue()
 	onChannelQueue := queue.NewQueue()
 	h.onTransportClosedEventQueues[uintptr(unsafe.Pointer(transport))] = onTransportClosedQueue
-
 	h.onChannelEventQueues[uintptr(unsafe.Pointer(transport))] = onChannelQueue
 
 	(*transport).OnClose(func() {
@@ -78,6 +90,9 @@ func (h *CallbackHandler) setupTransportEvents(transport *sylph.Transport) {
 	})
 
 	(*transport).OnChannel(func(channel channel.Channel) {
+		if h.onChannelHandler != nil {
+			h.onChannelHandler(channel, uintptr(unsafe.Pointer(&channel)))
+		}
 		h.setupChannelEvents(&channel)
 		onChannelQueue.Enqueue(uintptr(unsafe.Pointer(&channel)))
 	})
