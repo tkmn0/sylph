@@ -22,69 +22,69 @@ const (
 type CallbackHandler struct {
 	converter *converter.Converter
 	// server/client events
-	onTransportEventQueues map[unsafe.Pointer]*queue.Queue
+	onTransportEventQueues map[uintptr]*queue.Queue
 	// transport events
-	onTransportClosedEventQueues map[unsafe.Pointer]*queue.Queue
-	onChannelEventQueues         map[unsafe.Pointer]*queue.Queue
+	onTransportClosedEventQueues map[uintptr]*queue.Queue
+	onChannelEventQueues         map[uintptr]*queue.Queue
 	// channel events
-	onChannelClosedEventQueues  map[unsafe.Pointer]*queue.Queue
-	onChannelErrorEventQueues   map[unsafe.Pointer]*queue.Queue
-	onChannelMessageEventQueues map[unsafe.Pointer]*queue.Queue
-	onChannelDataEventQueues    map[unsafe.Pointer]*queue.Queue
+	onChannelClosedEventQueues  map[uintptr]*queue.Queue
+	onChannelErrorEventQueues   map[uintptr]*queue.Queue
+	onChannelMessageEventQueues map[uintptr]*queue.Queue
+	onChannelDataEventQueues    map[uintptr]*queue.Queue
 }
 
 func NewCallbackHandler() *CallbackHandler {
 	return &CallbackHandler{
 		converter:                    converter.NewConverter(),
-		onTransportEventQueues:       map[unsafe.Pointer]*queue.Queue{},
-		onTransportClosedEventQueues: map[unsafe.Pointer]*queue.Queue{},
-		onChannelEventQueues:         map[unsafe.Pointer]*queue.Queue{},
-		onChannelClosedEventQueues:   map[unsafe.Pointer]*queue.Queue{},
-		onChannelErrorEventQueues:    map[unsafe.Pointer]*queue.Queue{},
-		onChannelMessageEventQueues:  map[unsafe.Pointer]*queue.Queue{},
-		onChannelDataEventQueues:     map[unsafe.Pointer]*queue.Queue{},
+		onTransportEventQueues:       map[uintptr]*queue.Queue{},
+		onTransportClosedEventQueues: map[uintptr]*queue.Queue{},
+		onChannelEventQueues:         map[uintptr]*queue.Queue{},
+		onChannelClosedEventQueues:   map[uintptr]*queue.Queue{},
+		onChannelErrorEventQueues:    map[uintptr]*queue.Queue{},
+		onChannelMessageEventQueues:  map[uintptr]*queue.Queue{},
+		onChannelDataEventQueues:     map[uintptr]*queue.Queue{},
 	}
 }
 
 func (h *CallbackHandler) SetupServerEvents(server *sylph.Server) {
 	onTransportQueue := queue.NewQueue()
-	h.onTransportEventQueues[unsafe.Pointer(server)] = onTransportQueue
+	h.onTransportEventQueues[uintptr(unsafe.Pointer(server))] = onTransportQueue
 
 	server.OnTransport(func(t sylph.Transport) {
-		h.setupTransportEvents(t)
-		onTransportQueue.Enqueue(unsafe.Pointer(&t))
+		h.setupTransportEvents(&t)
+		onTransportQueue.Enqueue(uintptr(uintptr(unsafe.Pointer(&t))))
 	})
 }
 
 func (h *CallbackHandler) SetupClientEvents(client *sylph.Client) {
 	onTransportQueue := queue.NewQueue()
-	h.onTransportEventQueues[unsafe.Pointer(client)] = onTransportQueue
+	h.onTransportEventQueues[uintptr(unsafe.Pointer(client))] = onTransportQueue
 
 	client.OnTransport(func(t sylph.Transport) {
-		h.setupTransportEvents(t)
-		onTransportQueue.Enqueue(unsafe.Pointer(&t))
+		h.setupTransportEvents(&t)
+		onTransportQueue.Enqueue(uintptr(unsafe.Pointer(&t)))
 	})
 }
 
-func (h *CallbackHandler) setupTransportEvents(transport sylph.Transport) {
-	ptr := unsafe.Pointer(&transport)
+func (h *CallbackHandler) setupTransportEvents(transport *sylph.Transport) {
 	onTransportClosedQueue := queue.NewQueue()
 	onChannelQueue := queue.NewQueue()
-	h.onTransportClosedEventQueues[ptr] = onTransportClosedQueue
-	h.onChannelEventQueues[ptr] = onChannelQueue
+	h.onTransportClosedEventQueues[uintptr(unsafe.Pointer(transport))] = onTransportClosedQueue
 
-	transport.OnClose(func() {
+	h.onChannelEventQueues[uintptr(unsafe.Pointer(transport))] = onChannelQueue
+
+	(*transport).OnClose(func() {
 		onTransportClosedQueue.Enqueue(Call)
 	})
 
-	transport.OnChannel(func(channel channel.Channel) {
-		h.setupChannelEvents(channel)
-		onChannelQueue.Enqueue(unsafe.Pointer(&channel))
+	(*transport).OnChannel(func(channel channel.Channel) {
+		h.setupChannelEvents(&channel)
+		onChannelQueue.Enqueue(uintptr(unsafe.Pointer(&channel)))
 	})
 }
 
-func (h *CallbackHandler) setupChannelEvents(channel channel.Channel) {
-	ptr := unsafe.Pointer(&channel)
+func (h *CallbackHandler) setupChannelEvents(channel *channel.Channel) {
+	ptr := uintptr(unsafe.Pointer(channel))
 	onChannelClosedQueue := queue.NewQueue()
 	onChannelErrorQueue := queue.NewQueue()
 	onChannelMessageQueue := queue.NewQueue()
@@ -94,25 +94,25 @@ func (h *CallbackHandler) setupChannelEvents(channel channel.Channel) {
 	h.onChannelMessageEventQueues[ptr] = onChannelMessageQueue
 	h.onChannelDataEventQueues[ptr] = onchannelDataQueue
 
-	channel.OnClose(func() {
+	(*channel).OnClose(func() {
 		onChannelClosedQueue.Enqueue(Call)
 	})
 
-	channel.OnError(func(err error) {
+	(*channel).OnError(func(err error) {
 		onChannelErrorQueue.Enqueue(err.Error())
 	})
 
-	channel.OnMessage(func(message string) {
+	(*channel).OnMessage(func(message string) {
 		onChannelMessageQueue.Enqueue(message)
 	})
 
-	channel.OnData(func(data []byte) {
+	(*channel).OnData(func(data []byte) {
 		onchannelDataQueue.Enqueue(data)
 	})
 }
 
 func (h *CallbackHandler) ReadOnTransport(p unsafe.Pointer) uintptr {
-	q, exists := h.onTransportEventQueues[p]
+	q, exists := h.onTransportEventQueues[uintptr(p)]
 	if !exists {
 		return uintptr_zero
 	}
@@ -122,11 +122,11 @@ func (h *CallbackHandler) ReadOnTransport(p unsafe.Pointer) uintptr {
 		return uintptr_zero
 	}
 
-	return uintptr(t.(unsafe.Pointer))
+	return t.(uintptr)
 }
 
 func (h *CallbackHandler) ReadOnTransportClosed(p unsafe.Pointer) uintptr {
-	q, exists := h.onTransportClosedEventQueues[p]
+	q, exists := h.onTransportClosedEventQueues[uintptr(p)]
 	if !exists {
 		return h.createEmptyEventPointer()
 	}
@@ -140,7 +140,7 @@ func (h *CallbackHandler) ReadOnTransportClosed(p unsafe.Pointer) uintptr {
 }
 
 func (h *CallbackHandler) ReadOnChannel(p unsafe.Pointer) uintptr {
-	q, exists := h.onChannelEventQueues[p]
+	q, exists := h.onChannelEventQueues[uintptr(p)]
 	if !exists {
 		return uintptr_zero
 	}
@@ -150,11 +150,11 @@ func (h *CallbackHandler) ReadOnChannel(p unsafe.Pointer) uintptr {
 		return uintptr_zero
 	}
 
-	return uintptr(c.(unsafe.Pointer))
+	return c.(uintptr)
 }
 
 func (h *CallbackHandler) ReadOnChannelClosed(p unsafe.Pointer) uintptr {
-	q, exists := h.onChannelClosedEventQueues[p]
+	q, exists := h.onChannelClosedEventQueues[uintptr(p)]
 	if !exists {
 		return h.createEmptyEventPointer()
 	}
@@ -168,7 +168,7 @@ func (h *CallbackHandler) ReadOnChannelClosed(p unsafe.Pointer) uintptr {
 }
 
 func (h *CallbackHandler) ReadOnChannelError(p unsafe.Pointer) uintptr {
-	q, exists := h.onChannelErrorEventQueues[p]
+	q, exists := h.onChannelErrorEventQueues[uintptr(p)]
 	if !exists {
 		return h.createEmptyEventPointer()
 	}
@@ -182,7 +182,7 @@ func (h *CallbackHandler) ReadOnChannelError(p unsafe.Pointer) uintptr {
 }
 
 func (h *CallbackHandler) ReadOnChannelMessage(p unsafe.Pointer) uintptr {
-	q, exists := h.onChannelMessageEventQueues[p]
+	q, exists := h.onChannelMessageEventQueues[uintptr(p)]
 	if !exists {
 		return h.createEmptyEventPointer()
 	}
@@ -196,7 +196,7 @@ func (h *CallbackHandler) ReadOnChannelMessage(p unsafe.Pointer) uintptr {
 }
 
 func (h *CallbackHandler) ReadOnChannelData(p unsafe.Pointer) uintptr {
-	q, exists := h.onChannelDataEventQueues[p]
+	q, exists := h.onChannelDataEventQueues[uintptr(p)]
 	if !exists {
 		return h.createEmptyEventPointer()
 	}
