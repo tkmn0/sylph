@@ -3,9 +3,8 @@ package api
 import (
 	"unsafe"
 
-	"github.com/tkmn0/sylph/cshared/handler"
-
 	"github.com/tkmn0/sylph"
+	"github.com/tkmn0/sylph/cshared/handler"
 	"github.com/tkmn0/sylph/pkg/channel"
 )
 
@@ -28,6 +27,9 @@ func InitializeClient() uintptr {
 
 func Connect(p unsafe.Pointer, address string, port int, config sylph.TransportConfig) {
 	c := (*sylph.Client)(p)
+	if c == nil {
+		return
+	}
 	c.Connect(address, port, config)
 }
 
@@ -40,42 +42,77 @@ func InitializeServer() uintptr {
 
 func RunServer(p unsafe.Pointer, address string, port int, config sylph.TransportConfig) {
 	s := (*sylph.Server)(p)
-	s.Run(address, port, config)
+	if s == nil {
+		return
+	}
+	go s.Run(address, port, config)
 }
 
 func StopServer(p unsafe.Pointer) {
 	s := (*sylph.Server)(p)
+	if s == nil {
+		return
+	}
 	s.Close()
 }
 
 func OpenChannel(p unsafe.Pointer, config channel.ChannelConfig) {
 	t := *(*sylph.Transport)(p)
+	if t == nil {
+		return
+	}
 	t.OpenChannel(config)
 }
 
 func CloseTransport(p unsafe.Pointer) {
 	t := *(*sylph.Transport)(p)
+	if t == nil {
+		return
+	}
 	t.Close()
 }
 
 func CloseChannel(p unsafe.Pointer) {
 	c := *(*channel.Channel)(p)
+	if c == nil {
+		return
+	}
 	c.Close()
 }
 
 func SendMessage(p unsafe.Pointer, message string) bool {
 	c := *(*channel.Channel)(p)
+	if c == nil {
+		return false
+	}
 	_, err := c.SendMessage(message)
 	return err == nil
 }
 
 func SendData(p unsafe.Pointer, data []byte) bool {
 	c := *(*channel.Channel)(p)
+	if c == nil {
+		return false
+	}
 	_, err := c.SendData(data)
 	return err == nil
 }
 
-func ReadOnTransportEvent(p unsafe.Pointer) uintptr {
+func Dispose() {
+	for _, c := range clients {
+		c.Close()
+	}
+
+	for _, s := range servers {
+		s.Close()
+	}
+
+	clients = []*sylph.Client{}
+	servers = []*sylph.Server{}
+	callbackHandler = handler.NewCallbackHandler()
+}
+
+func ReadOnTransport(p unsafe.Pointer) uintptr {
 	return callbackHandler.ReadOnTransport(p)
 }
 
@@ -99,6 +136,6 @@ func ReadOnChannelMessage(p unsafe.Pointer) uintptr {
 	return callbackHandler.ReadOnChannelMessage(p)
 }
 
-func ReadonchannelData(p unsafe.Pointer) uintptr {
+func ReadOnChannelData(p unsafe.Pointer) uintptr {
 	return callbackHandler.ReadOnChannelData(p)
 }

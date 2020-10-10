@@ -1,2 +1,2 @@
-/dist/*
-!/dist/.gitkeep
+/_dist/*
+!/_dist/.gitkeep
