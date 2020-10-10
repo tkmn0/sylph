@@ -71,10 +71,12 @@ func (t *SctpTransport) Init(conn net.Conn, isClient bool, engienConfig engine.E
 }
 
 func (t *SctpTransport) AcceptStreamLoop() {
+loop:
 	for {
 		select {
 		case <-t.close:
 			t.assosiation.Close()
+			break loop
 		default:
 			st, err := t.assosiation.AcceptStream()
 			if err != nil {
@@ -208,13 +210,22 @@ func (t *SctpTransport) Channel(id string) channel.Channel {
 func (t *SctpTransport) SetConfig() {}
 
 func (t *SctpTransport) Close() {
+	fmt.Println("close transport:", t.id)
+
 	for _, s := range t.sctpStreams {
 		s.Close()
 	}
 
-	if t.close != nil {
-		t.close <- true
-	}
+	// if t.baseStream != nil {
+	// 	t.changeStreamToSctpStream(t.baseStream).Close()
+	// }
+
+	// fmt.Println("stream closed:", t.id)
+
+	// if t.close != nil {
+	// 	t.close <- true
+	// }
+	fmt.Println("channel closed:", t.id)
 }
 
 func (t *SctpTransport) IsClosed() bool {

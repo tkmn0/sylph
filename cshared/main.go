@@ -6,6 +6,8 @@ package main
 */
 import "C"
 import (
+	"fmt"
+	"runtime"
 	"time"
 	"unsafe"
 
@@ -14,10 +16,7 @@ import (
 )
 
 // cache
-var clients map[int]*sylph.Client
-var servers map[int]*sylph.Server
-var transports map[string]sylph.Transport
-var channels map[string]channel.Channel
+
 
 // callbacks
 var onTransportCallback C.onTransportCallback = nil
@@ -29,48 +28,38 @@ var onMessageCallback C.onMessageCallback = nil
 var onDataCallback C.onDataCallback = nil
 
 func init() {
-	initializeInternal()
-}
-
-func initializeInternal() {
+	runtime.LockOSThread()
 	clients = map[int]*sylph.Client{}
 	servers = map[int]*sylph.Server{}
 	channels = map[string]channel.Channel{}
 	transports = map[string]sylph.Transport{}
-	onTransportCallback = nil
-	onTransportClosedCallback = nil
-	onChannelCallback = nil
-	onChannelClosedCallback = nil
-	onChannelErrorCallback = nil
-	onMessageCallback = nil
-	onDataCallback = nil
 }
 
 func setupChannel(c channel.Channel) {
 	c.OnClose(func() {
-		if onChannelCallback != nil {
-			C.invokeOnChannelClosed(C.CString(c.Id()), onChannelClosedCallback)
-		}
+		// if onChannelCallback != nil {
+		// C.invokeOnChannelClosed(C.CString(c.Id()), onChannelClosedCallback)
+		// }
 		delete(channels, c.Id())
 	})
 
 	c.OnError(func(err error) {
-		if onChannelErrorCallback != nil {
-			C.invokeOnChannelError(C.CString(c.Id()), C.CString(err.Error()), onChannelErrorCallback)
-		}
+		// if onChannelErrorCallback != nil {
+		// C.invokeOnChannelError(C.CString(c.Id()), C.CString(err.Error()), onChannelErrorCallback)
+		// }
 		delete(channels, c.Id())
 	})
 
 	c.OnMessage(func(m string) {
-		if onMessageCallback != nil {
-			C.invokeOnMessage(C.CString(c.Id()), C.CString(m), onMessageCallback)
-		}
+		// if onMessageCallback != nil {
+		// C.invokeOnMessage(C.CString(c.Id()), C.CString(m), onMessageCallback)
+		// }
 	})
 
 	c.OnData(func(data []byte) {
-		if onDataCallback != nil {
-			C.invokeOnData(C.CString(c.Id()), unsafe.Pointer(&data[0]), C.int(len(data)), onDataCallback)
-		}
+		// if onDataCallback != nil {
+		// C.invokeOnData(C.CString(c.Id()), unsafe.Pointer(&data[0]), C.int(len(data)), onDataCallback)
+		// }
 	})
 }
 
@@ -78,22 +67,22 @@ func setupTransport(t sylph.Transport, isServer bool) {
 	t.OnChannel(func(c channel.Channel) {
 		setupChannel(c)
 		channels[c.Id()] = c
-		if onChannelCallback != nil {
-			C.invokeOnChannel(C.CString(t.Id()), C.CString(c.Id()), onChannelCallback)
-		}
+		// if onChannelCallback != nil {
+		// C.invokeOnChannel(C.CString(t.Id()), C.CString(c.Id()), onChannelCallback)
+		// }
 	})
 
 	t.OnClose(func() {
-		if onTransportClosedCallback != nil {
-			C.invokeOnTransportClosed(C.CString(t.Id()), C.bool(isServer), onTransportClosedCallback)
-		}
+		// if onTransportClosedCallback != nil {
+		// C.invokeOnTransportClosed(C.CString(t.Id()), C.bool(isServer), onTransportClosedCallback)
+		// }
 		delete(transports, t.Id())
 	})
 }
 
 //export Initialize
 func Initialize() {
-	initializeInternal()
+	// initializeInternal()
 }
 
 //export InitializeClient
@@ -103,7 +92,7 @@ func InitializeClient() int {
 	client.OnTransport(func(t sylph.Transport) {
 		setupTransport(t, false)
 		transports[t.Id()] = t
-		C.invokeOnTransport(C.int(id), C.CString(t.Id()), false, onTransportCallback)
+		// C.invokeOnTransport(C.int(id), C.CString(t.Id()), false, onTransportCallback)
 	})
 
 	clients[id] = client
@@ -209,23 +198,40 @@ func SendData(id *C.char, ptr unsafe.Pointer, length C.int) bool {
 
 //export DestroyAll
 func DestroyAll() {
-	for _, c := range channels {
-		c.Close()
-	}
+	fmt.Println("call destroy all")
+	// for _, c := range channels {
+	// 	c.Close()
+	// }
+	// channels = map[string]channel.Channel{}
+	fmt.Println("close channels")
 
 	for _, t := range transports {
 		t.Close()
 	}
 
+	// fmt.Println("close transports")
+
 	for _, c := range clients {
 		c.Close()
 	}
+
+	fmt.Println("close clients")
 
 	for _, s := range servers {
 		s.Close()
 	}
 
-	initializeInternal()
+	// fmt.Println("close servers")
+
+	// // initializeInternal()
+
+	// fmt.Println("free pointers")
+}
+
+//export Panic
+func Panic() {
+	var panicChan chan bool
+	close(panicChan)
 }
 
 //export RegisterOnTransportCallback

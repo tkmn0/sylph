@@ -74,12 +74,14 @@ func (e *StreamEngine) setupStream(s stream.Stream, t stream.StreamType, id stri
 func (e *StreamEngine) observeStatus(s stream.Stream) {
 	go func() {
 		select {
-		case closed := <-e.close:
-			if closed {
-				if e.OnStreamClosed != nil {
-					e.OnStreamClosed(s)
+		case closed, ok := <-e.close:
+			e.close = nil
+			if ok {
+				if closed {
+					if e.OnStreamClosed != nil {
+						e.OnStreamClosed(s)
+					}
 				}
-				e.close = nil
 			}
 		case err := <-e.err:
 			if err != nil {
@@ -103,7 +105,13 @@ loop:
 }
 
 func (e *StreamEngine) readStream(s stream.Stream) {
+loop:
 	for {
+		e.lock.RLock()
+		if e.close == nil {
+			break loop
+		}
+		e.lock.RUnlock()
 		buffer := make([]byte, 1024)
 		l, err, isString := s.Read(buffer)
 		buffer = buffer[:l]
@@ -130,6 +138,7 @@ func (e *StreamEngine) readStream(s stream.Stream) {
 			e.lastHeartbeat = time.Now()
 			e.lock.Unlock()
 		}
+
 	}
 }
 
