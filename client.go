@@ -3,6 +3,7 @@ package sylph
 import (
 	"context"
 	"crypto/tls"
+	"fmt"
 	"net"
 	"time"
 
@@ -19,6 +20,7 @@ type Client struct {
 	cancel             context.CancelFunc
 	onTransportHandler func(t Transport)
 	transports         map[string]Transport
+	conn               *dtls.Conn
 }
 
 func NewClient() *Client {
@@ -47,10 +49,11 @@ func (c *Client) Connect(address string, port int, tc TransportConfig) {
 
 	dtlsConn, err := dtls.DialWithContext(ctx, "udp", addr, config)
 	util.Check(err)
+	c.conn = dtlsConn
 
 	t := transport.NewSctpTransport("")
 	t.Init(dtlsConn, true, engine.EngineConfig{
-		HeartbeatRateMillisec:  tc.HeartbeatRateMillisec,
+		HeartbeatRateMillisec:   tc.HeartbeatRateMillisec,
 		TimeOutDurationMilliSec: tc.TimeOutDurationMilliSec,
 	})
 	t.OnTransportInitialized = func() {
@@ -72,8 +75,11 @@ func (c *Client) OnTransport(handler func(t Transport)) {
 }
 
 func (c *Client) Close() {
-	for _, t := range c.transports {
-		t.Close()
-	}
 	c.cancel()
+	if c.conn != nil {
+		err := c.conn.Close()
+		if err != nil {
+			fmt.Println("dtls closed:", err.Error())
+		}
+	}
 }

@@ -25,43 +25,45 @@ func NewServer() *Server {
 	}
 }
 
+func (s *Server) obserbeClose() {
+	<-s.close
+	s.close = nil
+	s.listenner.Close()
+}
+
 func (s *Server) Run(address string, port int, tc TransportConfig) {
+	go s.obserbeClose()
+
 	c := ListenerConfig{
 		address: address,
 		port:    port,
 	}
 	s.listenner.Listen(c)
-loop:
 	for {
-		select {
-		case conn := <-s.listenner.connection:
-			id, err := s.createId()
-			if err != nil {
-				fmt.Println("id creation error")
-				return
-			}
-
-			sctp := transport.NewSctpTransport(id)
-			err = sctp.Init(conn, false, engine.EngineConfig{
-				HeartbeatRateMillisec:   tc.HeartbeatRateMillisec,
-				TimeOutDurationMilliSec: tc.TimeOutDurationMilliSec,
-			})
-
-			if err != nil {
-				fmt.Println("sctp initialize error")
-			}
-
-			s.transports = append(s.transports, sctp)
-			if s.onTransportHandler != nil {
-				s.onTransportHandler(sctp)
-			}
-
-			go sctp.AcceptStreamLoop()
-		case <-s.close:
-			s.close = nil
-			s.listenner.Close()
-			break loop
+		conn := <-s.listenner.connection
+		id, err := s.createId()
+		if err != nil {
+			fmt.Println("id creation error")
+			return
 		}
+
+		sctp := transport.NewSctpTransport(id)
+		err = sctp.Init(conn, false, engine.EngineConfig{
+			HeartbeatRateMillisec:   tc.HeartbeatRateMillisec,
+			TimeOutDurationMilliSec: tc.TimeOutDurationMilliSec,
+		})
+
+		if err != nil {
+			fmt.Println("sctp initialize error")
+		}
+
+		s.transports = append(s.transports, sctp)
+		if s.onTransportHandler != nil {
+			s.onTransportHandler(sctp)
+		}
+
+		go sctp.AcceptStreamLoop()
+
 	}
 }
 
