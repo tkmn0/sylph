@@ -63,7 +63,7 @@ func (l *Listener) Listen(c ListenerConfig) {
 		ExtendedMasterSecret: dtls.RequireExtendedMasterSecret,
 		// Create timeout context for accepted connection.
 		ConnectContextMaker: func() (context.Context, func()) {
-			return context.WithTimeout(ctx, time.Second)
+			return context.WithTimeout(ctx, 30*time.Second)
 		},
 	}
 
