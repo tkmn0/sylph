@@ -9,9 +9,9 @@ import (
 )
 
 func main() {
-	s := sylph.NewServer("127.0.0.1", 4444)
-	s.OnTransport = func(t sylph.Transport) {
-		fmt.Println("transport opened")
+	s := sylph.NewServer()
+	s.OnTransport(func(t sylph.Transport) {
+		fmt.Println("transport opened:", t.Id())
 		t.OnChannel(func(c channel.Channel) {
 			fmt.Println("server on channel")
 
@@ -41,6 +41,7 @@ func main() {
 					if counter == 5 {
 						// c.Close()
 						// t.Close()
+						// s.Close()
 						break
 					}
 					counter++
@@ -50,6 +51,9 @@ func main() {
 		t.OnClose(func() {
 			fmt.Println("transport closed")
 		})
-	}
-	s.Run()
+	})
+	s.Run("127.0.0.1", 4444, sylph.TransportConfig{
+		HeartbeatRateMillisec:   1000,
+		TimeOutDurationMilliSec: 300,
+	})
 }

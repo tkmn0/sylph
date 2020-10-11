@@ -3,8 +3,11 @@ package sylph
 import (
 	"context"
 	"crypto/tls"
+	"fmt"
 	"net"
 	"time"
+
+	"github.com/tkmn0/sylph/internal/engine"
 
 	"github.com/pion/dtls/v2"
 	"github.com/pion/dtls/v2/pkg/crypto/selfsign"
@@ -13,19 +16,20 @@ import (
 )
 
 type Client struct {
-	addr           *net.UDPAddr
-	cancel         context.CancelFunc
-	OnTransport    func(t Transport)
-	sctpTransports []*transport.SctpTransport
+	addr               *net.UDPAddr
+	cancel             context.CancelFunc
+	onTransportHandler func(t Transport)
+	transports         map[string]Transport
+	conn               *dtls.Conn
 }
 
 func NewClient() *Client {
 	return &Client{
-		sctpTransports: []*transport.SctpTransport{},
+		transports: map[string]Transport{},
 	}
 }
 
-func (c *Client) Connect(address string, port int) {
+func (c *Client) Connect(address string, port int, tc TransportConfig) {
 	// Prepare the IP to connect to
 	addr := &net.UDPAddr{IP: net.ParseIP(address), Port: port}
 
@@ -45,13 +49,37 @@ func (c *Client) Connect(address string, port int) {
 
 	dtlsConn, err := dtls.DialWithContext(ctx, "udp", addr, config)
 	util.Check(err)
+	c.conn = dtlsConn
 
-	// TODO: receive id from server
-	t := transport.NewSctpTransport("testtest")
-	t.Init(dtlsConn, true)
-	c.sctpTransports = append(c.sctpTransports, t)
+	t := transport.NewSctpTransport("")
+	t.Init(dtlsConn, true, engine.EngineConfig{
+		HeartbeatRateMillisec:   tc.HeartbeatRateMillisec,
+		TimeOutDurationMilliSec: tc.TimeOutDurationMilliSec,
+	})
+	t.OnTransportInitialized = func() {
+		c.onTransportHandler(t)
+	}
+	c.transports[t.Id()] = t
+}
 
-	if c.OnTransport != nil {
-		c.OnTransport(t)
+func (c *Client) Transport(id string) Transport {
+	if t, exists := c.transports[id]; exists && !t.IsClosed() {
+		return t
+	} else {
+		return nil
+	}
+}
+
+func (c *Client) OnTransport(handler func(t Transport)) {
+	c.onTransportHandler = handler
+}
+
+func (c *Client) Close() {
+	c.cancel()
+	if c.conn != nil {
+		err := c.conn.Close()
+		if err != nil {
+			fmt.Println("dtls closed:", err.Error())
+		}
 	}
 }

@@ -37,7 +37,9 @@ func (s *SctpStream) SendMessage(message string) (int, error) {
 }
 
 func (s *SctpStream) Close() {
-	s.streamCloseHandler()
+	if s.streamCloseHandler != nil {
+		s.streamCloseHandler()
+	}
 }
 
 func (s *SctpStream) Id() string {
@@ -89,10 +91,12 @@ func (s *SctpStream) Error(e error) {
 }
 
 func (s *SctpStream) CloseStream(notify bool) {
-	if s.onCloseHandler != nil && notify && !s.isClosed {
+	if !s.isClosed {
 		s.isClosed = true
 		s.stream.Close()
-		s.onCloseHandler()
+		if notify && s.onCloseHandler != nil {
+			s.onCloseHandler()
+		}
 	}
 }
 

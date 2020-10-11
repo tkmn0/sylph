@@ -10,8 +10,8 @@ import (
 
 func main() {
 	c := sylph.NewClient()
-	c.OnTransport = func(t sylph.Transport) {
-		fmt.Println("client on transport")
+	c.OnTransport(func(t sylph.Transport) {
+		fmt.Println("client on transport:", t.Id())
 		t.OnChannel(func(c channel.Channel) {
 			fmt.Println("client on channel")
 			c.OnClose(func() {
@@ -38,8 +38,9 @@ func main() {
 					c.SendData([]byte("hello from client data"))
 					c.SendMessage("hello from client message")
 					if counter == 5 {
-						c.Close()
+						// c.Close()
 						// t.Close()
+						// t.OpenChannel(channel.ChannelConfig{})
 						break
 					}
 					counter++
@@ -56,10 +57,13 @@ func main() {
 			ReliabilityValue: 0,
 		}
 		t.OpenChannel(c)
-		// t.OpenChannel()
-	}
+	})
 
-	c.Connect("127.0.0.1", 4444)
+	c.Connect("127.0.0.1", 4444, sylph.TransportConfig{
+		HeartbeatRateMillisec:  1000,
+		TimeOutDurationMilliSec: 300,
+	})
 	for {
+		time.Sleep(1)
 	}
 }

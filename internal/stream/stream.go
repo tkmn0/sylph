@@ -2,6 +2,7 @@ package stream
 
 type Stream interface {
 	Error(e error)
+	Close()
 	CloseStream(notify bool)
 	Message(s string)
 	Data(b []byte)
