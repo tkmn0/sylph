@@ -125,6 +125,10 @@ func Dispose() {
 		c.Close()
 	}
 
+	for _, t := range transports {
+		t.Close()
+	}
+
 	clients = []*sylph.Client{}
 	servers = []*sylph.Server{}
 }

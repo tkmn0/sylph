@@ -15,7 +15,6 @@ type Server struct {
 	transports         []Transport
 	onTransportHandler func(transport Transport)
 	close              chan bool
-	isClosed           bool
 }
 
 func NewServer() *Server {
@@ -59,6 +58,8 @@ loop:
 
 			go sctp.AcceptStreamLoop()
 		case <-s.close:
+			fmt.Println("close listenner")
+			s.close = nil
 			s.listenner.Close()
 			break loop
 		}
@@ -85,11 +86,10 @@ func (s *Server) OnTransport(handler func(t Transport)) {
 }
 
 func (s *Server) Close() {
-	if !s.isClosed {
-		s.isClosed = true
+	fmt.Println("close server")
+	if s.close != nil {
 		s.close <- true
+	} else {
+		fmt.Println("server is already closed")
 	}
-	// for _, t := range s.transports {
-	// 	t.Close()
-	// }
 }

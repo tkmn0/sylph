@@ -22,7 +22,7 @@ type Listener struct {
 	connection chan net.Conn
 	closeCh    chan bool
 	cancel     context.CancelFunc
-	isClosed   bool
+	listener   net.Listener
 }
 
 func NewListenner() *Listener {
@@ -32,7 +32,18 @@ func NewListenner() *Listener {
 	}
 }
 
+func (l *Listener) obserbeClose() {
+	<-l.closeCh
+	l.closeCh = nil
+	l.cancel()
+	l.listener.Close()
+	l.listener = nil
+}
+
 func (l *Listener) Listen(c ListenerConfig) {
+
+	go l.obserbeClose()
+
 	// Prepare the IP to connect to
 	l.addr = &net.UDPAddr{IP: net.ParseIP(c.address), Port: c.port}
 
@@ -44,7 +55,6 @@ func (l *Listener) Listen(c ListenerConfig) {
 
 	// Create parent context to cleanup handshaking connections on exit.
 	ctx, cancel := context.WithCancel(context.Background())
-	// defer cancel()
 	l.cancel = cancel
 
 	// Prepare the configuration of the DTLS connection
@@ -53,42 +63,48 @@ func (l *Listener) Listen(c ListenerConfig) {
 		ExtendedMasterSecret: dtls.RequireExtendedMasterSecret,
 		// Create timeout context for accepted connection.
 		ConnectContextMaker: func() (context.Context, func()) {
-			return context.WithTimeout(ctx, 30*time.Second)
+			return context.WithTimeout(ctx, time.Second)
 		},
 	}
 
 	// Listen
 	listener, err := dtls.Listen("udp", l.addr, config)
+	l.listener = listener
+
 	if err != nil {
 		fmt.Println("dtls liten error", err)
 	}
 
 	go func() {
-	loop:
 		for {
-			select {
-			case <-l.closeCh:
-				fmt.Println("close listener in channel")
-				l.isClosed = true
-				l.cancel()
-				err := listener.Close()
-				fmt.Println(err)
-				break loop
-			default:
-				// Wait for a connection.
-				if listener == nil {
-					return
+			// Wait for a connection.
+			if l.listener == nil {
+				break
+			}
+			conn, err := l.listener.Accept()
+			defer func() {
+				if conn != nil {
+					err := conn.Close()
+					if err != nil {
+						fmt.Println(err.Error())
+					}
 				}
-				conn, err := listener.Accept()
-				if err != nil && !l.isClosed {
+			}()
+
+			if err != nil {
+				fmt.Println("listener error:", err.Error())
+				if l.closeCh != nil {
 					l.closeCh <- true
 				}
-				l.connection <- conn
+				break
 			}
+			l.connection <- conn
 		}
 	}()
 }
 
 func (l *Listener) Close() {
-	l.closeCh <- true
+	if l.closeCh != nil {
+		l.closeCh <- true
+	}
 }
