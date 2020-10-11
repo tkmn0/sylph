@@ -7,10 +7,9 @@ import (
 	"net"
 	"time"
 
-	"github.com/tkmn0/sylph/internal/engine"
-
 	"github.com/pion/dtls/v2"
 	"github.com/pion/dtls/v2/pkg/crypto/selfsign"
+	"github.com/tkmn0/sylph/internal/engine"
 	"github.com/tkmn0/sylph/internal/transport"
 	"github.com/tkmn0/sylph/pkg/util"
 )
