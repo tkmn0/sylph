@@ -45,9 +45,11 @@ func (e *StreamEngine) Run(s stream.Stream, t stream.StreamType, config EngineCo
 		return s.WriteMessage(e.builder.BuildMessage([]byte(message), MessageTypeBody))
 	})
 	s.OnCloseHandler(func() {
+		time.Sleep(time.Millisecond * 1)
 		if e.close != nil {
 			e.close <- true
 		}
+
 	})
 
 	e.setupStream(s, t, transportId)

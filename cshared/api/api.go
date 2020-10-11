@@ -121,9 +121,12 @@ func Dispose() {
 		s.Close()
 	}
 
+	for _, c := range channels {
+		c.Close()
+	}
+
 	clients = []*sylph.Client{}
 	servers = []*sylph.Server{}
-	callbackHandler = handler.NewCallbackHandler()
 }
 
 func ReadOnTransport(p unsafe.Pointer) uintptr {

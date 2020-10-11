@@ -210,22 +210,17 @@ func (t *SctpTransport) Channel(id string) channel.Channel {
 func (t *SctpTransport) SetConfig() {}
 
 func (t *SctpTransport) Close() {
-	fmt.Println("close transport:", t.id)
-
 	for _, s := range t.sctpStreams {
 		s.Close()
 	}
 
-	// if t.baseStream != nil {
-	// 	t.changeStreamToSctpStream(t.baseStream).Close()
-	// }
+	if t.baseStream != nil {
+		t.baseStream.Close()
+	}
 
-	// fmt.Println("stream closed:", t.id)
-
-	// if t.close != nil {
-	// 	t.close <- true
-	// }
-	fmt.Println("channel closed:", t.id)
+	if t.close != nil {
+		t.close <- true
+	}
 }
 
 func (t *SctpTransport) IsClosed() bool {

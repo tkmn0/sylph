@@ -3,12 +3,10 @@ package handler
 import (
 	"unsafe"
 
-	"github.com/tkmn0/sylph/pkg/channel"
-
-	"github.com/tkmn0/sylph/cshared/converter"
-
 	"github.com/tkmn0/sylph"
+	"github.com/tkmn0/sylph/cshared/converter"
 	"github.com/tkmn0/sylph/cshared/queue"
+	"github.com/tkmn0/sylph/pkg/channel"
 )
 
 const uintptr_zero = 0
