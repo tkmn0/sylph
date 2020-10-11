@@ -86,10 +86,7 @@ func (s *Server) OnTransport(handler func(t Transport)) {
 }
 
 func (s *Server) Close() {
-	fmt.Println("close server")
 	if s.close != nil {
 		s.close <- true
-	} else {
-		fmt.Println("server is already closed")
 	}
 }
