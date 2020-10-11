@@ -58,7 +58,6 @@ loop:
 
 			go sctp.AcceptStreamLoop()
 		case <-s.close:
-			fmt.Println("close listenner")
 			s.close = nil
 			s.listenner.Close()
 			break loop

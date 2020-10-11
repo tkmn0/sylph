@@ -53,7 +53,7 @@ func main() {
 		})
 	})
 	s.Run("127.0.0.1", 4444, sylph.TransportConfig{
-		HeartbeatRateMillisec:  1000,
+		HeartbeatRateMillisec:   1000,
 		TimeOutDurationMilliSec: 300,
 	})
 }
