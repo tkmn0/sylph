@@ -3,12 +3,15 @@ package sylph
 import (
 	"fmt"
 
-	"github.com/tkmn0/sylph/internal/engine"
-
 	"github.com/google/uuid"
+	"github.com/tkmn0/sylph/internal/engine"
 	"github.com/tkmn0/sylph/internal/transport"
 )
 
+// Server handles base connections. (udp, dtls, sctp)
+// A Server includes a listener.
+// A Server handles a bundle of Transports.
+// After a Client connected, OnTransport will be called.
 type Server struct {
 	listenner          *Listener
 	listenerConfig     ListenerConfig
@@ -17,6 +20,7 @@ type Server struct {
 	close              chan bool
 }
 
+// NewServer creates a Server.
 func NewServer() *Server {
 	return &Server{
 		listenner:  NewListenner(),
@@ -25,12 +29,15 @@ func NewServer() *Server {
 	}
 }
 
+// obserbeClose obserbes and handles closing
 func (s *Server) obserbeClose() {
 	<-s.close
 	s.close = nil
 	s.listenner.Close()
 }
 
+// Run runs server with address, port, and TransportConfig.
+// This will block process, call this with goroutine when necessary.
 func (s *Server) Run(address string, port int, tc TransportConfig) {
 	go s.obserbeClose()
 
@@ -67,6 +74,9 @@ func (s *Server) Run(address string, port int, tc TransportConfig) {
 	}
 }
 
+// createId creates id for Transport.
+// This id will be used server side and client.
+// The id in client side has suffix "-client" with server side id.
 func (s *Server) createId() (string, error) {
 	uuidObj, err := uuid.NewRandom()
 	if err != nil {
@@ -82,10 +92,12 @@ func (s *Server) createId() (string, error) {
 	return uuid, nil
 }
 
+// OnTransport will be called when Client connected.
 func (s *Server) OnTransport(handler func(t Transport)) {
 	s.onTransportHandler = handler
 }
 
+// Close closes server.
 func (s *Server) Close() {
 	if s.close != nil {
 		s.close <- true

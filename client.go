@@ -1,3 +1,4 @@
+// Package sylph implements API to hadle sctp transports.
 package sylph
 
 import (
@@ -14,6 +15,8 @@ import (
 	"github.com/tkmn0/sylph/pkg/util"
 )
 
+// Client handles base connections. (udp, dtls, sctp)
+// The relationship Client and Transport is one to one.
 type Client struct {
 	addr               *net.UDPAddr
 	cancel             context.CancelFunc
@@ -22,12 +25,15 @@ type Client struct {
 	conn               *dtls.Conn
 }
 
+// NewClient creates a new Client
 func NewClient() *Client {
 	return &Client{
 		transports: map[string]Transport{},
 	}
 }
 
+// Connect tries to connect with sylph Server.
+// After connection established, OnTransport will be called.
 func (c *Client) Connect(address string, port int, tc TransportConfig) {
 	// Prepare the IP to connect to
 	addr := &net.UDPAddr{IP: net.ParseIP(address), Port: port}
@@ -61,6 +67,7 @@ func (c *Client) Connect(address string, port int, tc TransportConfig) {
 	c.transports[t.Id()] = t
 }
 
+// Transport returns Transport corresponded with id
 func (c *Client) Transport(id string) Transport {
 	if t, exists := c.transports[id]; exists && !t.IsClosed() {
 		return t
@@ -69,10 +76,13 @@ func (c *Client) Transport(id string) Transport {
 	}
 }
 
+// OnTransport handles callback when connection established.
+// Callback parameter has Transport.
 func (c *Client) OnTransport(handler func(t Transport)) {
 	c.onTransportHandler = handler
 }
 
+// Close closes dtls connection.
 func (c *Client) Close() {
 	c.cancel()
 	if c.conn != nil {
