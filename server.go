@@ -23,7 +23,7 @@ type Server struct {
 // NewServer creates a Server.
 func NewServer() *Server {
 	return &Server{
-		listener:  NewListenner(),
+		listener:  NewListener(),
 		transports: []Transport{},
 		close:      make(chan bool),
 	}

@@ -17,7 +17,7 @@ type ListenerConfig struct {
 	port    int
 }
 
-// Listenner is dtls listener.
+// Listener is dtls listener.
 // This handles udp and dtls.
 type Listener struct {
 	addr       *net.UDPAddr
@@ -27,7 +27,7 @@ type Listener struct {
 	listener   net.Listener
 }
 
-func NewListenner() *Listener {
+func NewListener() *Listener {
 	return &Listener{
 		connection: make(chan net.Conn),
 		closeCh:    make(chan bool),
