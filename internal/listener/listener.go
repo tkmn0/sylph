@@ -1,4 +1,4 @@
-package sylph
+package listener
 
 import (
 	"context"
@@ -13,15 +13,15 @@ import (
 )
 
 type ListenerConfig struct {
-	address string
-	port    int
+	Address string
+	Port    int
 }
 
 // Listener is dtls listener.
 // This handles udp and dtls.
 type Listener struct {
 	addr       *net.UDPAddr
-	connection chan net.Conn
+	Connection chan net.Conn
 	closeCh    chan bool
 	cancel     context.CancelFunc
 	listener   net.Listener
@@ -29,7 +29,7 @@ type Listener struct {
 
 func NewListener() *Listener {
 	return &Listener{
-		connection: make(chan net.Conn),
+		Connection: make(chan net.Conn),
 		closeCh:    make(chan bool),
 	}
 }
@@ -47,7 +47,7 @@ func (l *Listener) Listen(c ListenerConfig) {
 	go l.obserbeClose()
 
 	// Prepare the IP to connect to
-	l.addr = &net.UDPAddr{IP: net.ParseIP(c.address), Port: c.port}
+	l.addr = &net.UDPAddr{IP: net.ParseIP(c.Address), Port: c.Port}
 
 	// Generate a certificate and private key to secure the connection
 	certificate, genErr := selfsign.GenerateSelfSigned()
@@ -100,7 +100,7 @@ func (l *Listener) Listen(c ListenerConfig) {
 				}
 				break
 			}
-			l.connection <- conn
+			l.Connection <- conn
 		}
 	}()
 }

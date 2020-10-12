@@ -5,6 +5,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/tkmn0/sylph/internal/engine"
+	"github.com/tkmn0/sylph/internal/listener"
 	"github.com/tkmn0/sylph/internal/transport"
 )
 
@@ -13,8 +14,8 @@ import (
 // A Server handles a bundle of Transports.
 // After a Client connected, OnTransport will be called.
 type Server struct {
-	listener          *Listener
-	listenerConfig     ListenerConfig
+	listener           *listener.Listener
+	listenerConfig     listener.ListenerConfig
 	transports         []Transport
 	onTransportHandler func(transport Transport)
 	close              chan bool
@@ -23,7 +24,7 @@ type Server struct {
 // NewServer creates a Server.
 func NewServer() *Server {
 	return &Server{
-		listener:  NewListener(),
+		listener:   listener.NewListener(),
 		transports: []Transport{},
 		close:      make(chan bool),
 	}
@@ -41,13 +42,13 @@ func (s *Server) obserbeClose() {
 func (s *Server) Run(address string, port int, tc TransportConfig) {
 	go s.obserbeClose()
 
-	c := ListenerConfig{
-		address: address,
-		port:    port,
+	c := listener.ListenerConfig{
+		Address: address,
+		Port:    port,
 	}
 	s.listener.Listen(c)
 	for {
-		conn := <-s.listener.connection
+		conn := <-s.listener.Connection
 		id, err := s.createId()
 		if err != nil {
 			fmt.Println("id creation error")
