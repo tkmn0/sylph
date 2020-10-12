@@ -12,11 +12,6 @@ import (
 	"github.com/pion/dtls/v2/pkg/crypto/selfsign"
 )
 
-type ListenerConfig struct {
-	Address string
-	Port    int
-}
-
 // Listener is dtls listener.
 // This handles udp and dtls.
 type Listener struct {
