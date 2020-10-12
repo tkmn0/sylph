@@ -17,7 +17,7 @@ type ListenerConfig struct {
 	port    int
 }
 
-// Listenner is dtls listenner.
+// Listenner is dtls listener.
 // This handles udp and dtls.
 type Listener struct {
 	addr       *net.UDPAddr

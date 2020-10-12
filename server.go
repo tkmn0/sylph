@@ -13,7 +13,7 @@ import (
 // A Server handles a bundle of Transports.
 // After a Client connected, OnTransport will be called.
 type Server struct {
-	listenner          *Listener
+	listener          *Listener
 	listenerConfig     ListenerConfig
 	transports         []Transport
 	onTransportHandler func(transport Transport)
@@ -23,7 +23,7 @@ type Server struct {
 // NewServer creates a Server.
 func NewServer() *Server {
 	return &Server{
-		listenner:  NewListenner(),
+		listener:  NewListenner(),
 		transports: []Transport{},
 		close:      make(chan bool),
 	}
@@ -33,7 +33,7 @@ func NewServer() *Server {
 func (s *Server) obserbeClose() {
 	<-s.close
 	s.close = nil
-	s.listenner.Close()
+	s.listener.Close()
 }
 
 // Run runs server with address, port, and TransportConfig.
@@ -45,9 +45,9 @@ func (s *Server) Run(address string, port int, tc TransportConfig) {
 		address: address,
 		port:    port,
 	}
-	s.listenner.Listen(c)
+	s.listener.Listen(c)
 	for {
-		conn := <-s.listenner.connection
+		conn := <-s.listener.connection
 		id, err := s.createId()
 		if err != nil {
 			fmt.Println("id creation error")
