@@ -42,7 +42,7 @@ func Connect(p unsafe.Pointer, address string, port int, config sylph.TransportC
 	if c == nil {
 		return
 	}
-	c.Connect(address, port, config)
+	c.ConnectAsync(address, port, config)
 }
 
 func InitializeServer() uintptr {

@@ -53,7 +53,9 @@ func (c *Client) Connect(address string, port int, tc TransportConfig) {
 	c.cancel = cancel
 
 	dtlsConn, err := dtls.DialWithContext(ctx, "udp", addr, config)
-	util.Check(err)
+	if err != nil {
+		fmt.Println("connection error:", err.Error())
+	}
 	c.conn = dtlsConn
 
 	t := transport.NewSctpTransport("")
@@ -65,6 +67,10 @@ func (c *Client) Connect(address string, port int, tc TransportConfig) {
 		c.onTransportHandler(t)
 	}
 	c.transports[t.Id()] = t
+}
+
+func (c *Client) ConnectAsync(address string, port int, tc TransportConfig) {
+	go c.Connect(address, port, tc)
 }
 
 // Transport returns Transport corresponded with id
@@ -84,7 +90,6 @@ func (c *Client) OnTransport(handler func(t Transport)) {
 
 // Close closes dtls connection.
 func (c *Client) Close() {
-	c.cancel()
 	if c.conn != nil {
 		err := c.conn.Close()
 		if err != nil {
