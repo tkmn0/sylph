@@ -82,6 +82,11 @@ func Dispose() {
 	api.Dispose()
 }
 
+//export ObserveConnectionState
+func ObserveConnectionState(ptr unsafe.Pointer) int {
+	return api.ReadConnectionState(ptr)
+}
+
 //export ObserveOnTransport
 func ObserveOnTransport(ptr unsafe.Pointer) uintptr {
 	return api.ReadOnTransport(ptr)
