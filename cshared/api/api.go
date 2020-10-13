@@ -133,6 +133,14 @@ func Dispose() {
 	servers = []*sylph.Server{}
 }
 
+func ReadConnectionState(p unsafe.Pointer) int {
+	c := (*sylph.Client)(p)
+	if c == nil {
+		return -1
+	}
+	return int(c.ConnectionState())
+}
+
 func ReadOnTransport(p unsafe.Pointer) uintptr {
 	return callbackHandler.ReadOnTransport(p)
 }
