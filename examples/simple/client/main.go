@@ -10,6 +10,10 @@ import (
 
 func main() {
 	c := sylph.NewClient()
+	c.OnConnectionStateChanged(func(state sylph.ConnectionState) {
+		fmt.Println("client state changed:", state.String())
+	})
+
 	c.OnTransport(func(t sylph.Transport) {
 		fmt.Println("client on transport:", t.Id())
 		t.OnChannel(func(c channel.Channel) {
@@ -60,7 +64,7 @@ func main() {
 	})
 
 	c.Connect("127.0.0.1", 4444, sylph.TransportConfig{
-		HeartbeatRateMillisec:  1000,
+		HeartbeatRateMillisec:   1000,
 		TimeOutDurationMilliSec: 300,
 	})
 	for {
