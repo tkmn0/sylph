@@ -32,8 +32,12 @@ func NewListener() *Listener {
 func (l *Listener) obserbeClose() {
 	<-l.closeCh
 	l.closeCh = nil
-	l.cancel()
-	l.listener.Close()
+	if l.cancel != nil {
+		l.cancel()
+	}
+	if l.listener != nil {
+		l.listener.Close()
+	}
 	l.listener = nil
 }
 
