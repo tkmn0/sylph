@@ -25,7 +25,6 @@ type Listener struct {
 func NewListener() *Listener {
 	return &Listener{
 		Connection: make(chan net.Conn),
-		closeCh:    make(chan bool),
 	}
 }
 
@@ -42,6 +41,7 @@ func (l *Listener) obserbeClose() {
 }
 
 func (l *Listener) Listen(c ListenerConfig) {
+	l.closeCh = make(chan bool)
 
 	go l.obserbeClose()
 

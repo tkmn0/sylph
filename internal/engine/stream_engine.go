@@ -25,8 +25,6 @@ type StreamEngine struct {
 
 func NewStreamEngine(config EngineConfig) *StreamEngine {
 	return &StreamEngine{
-		close:                   make(chan bool),
-		err:                     make(chan error),
 		builder:                 NewMessageBuilder(),
 		parcer:                  NewMessageParcer(),
 		heartbeatRateMillisec:   1000,
@@ -52,6 +50,8 @@ func (e *StreamEngine) Run(s stream.Stream, t stream.StreamType, config EngineCo
 
 	})
 
+	e.close = make(chan bool)
+	e.err = make(chan error)
 	e.setupStream(s, t, transportId)
 	e.observeStatus(s)
 	go e.handleHeartBeat(s)
