@@ -30,7 +30,6 @@ func NewSctpTransport(id string) *SctpTransport {
 		id:          id,
 		sctpStreams: map[string]*stream.SctpStream{},
 		engines:     map[string]*engine.StreamEngine{},
-		close:       make(chan bool),
 		streamCount: 0,
 	}
 }
@@ -59,9 +58,16 @@ func (t *SctpTransport) Init(conn net.Conn, isClient bool, engienConfig engine.E
 		t.assosiation = a
 	}
 
+	t.close = make(chan bool)
+
 	go func() {
 		<-t.close
 		t.close = nil
+
+		if t.assosiation != nil {
+			t.assosiation.Close()
+		}
+
 		if t.onCloseHandler != nil {
 			t.onCloseHandler()
 		}
@@ -71,25 +77,18 @@ func (t *SctpTransport) Init(conn net.Conn, isClient bool, engienConfig engine.E
 }
 
 func (t *SctpTransport) AcceptStreamLoop() {
-loop:
 	for {
-		select {
-		case <-t.close:
-			t.assosiation.Close()
-			break loop
-		default:
-			st, err := t.assosiation.AcceptStream()
-			if err != nil {
-				fmt.Println(t.id, "stream accept error")
-				return
-			}
-			sctpStream := stream.NewSctpStream(st, t.id)
-			e := engine.NewStreamEngine(t.engineConfig)
-			e.OnStreamClosed = t.onStreamClosed
-			e.OnStream = t.onStreamInitialized
-			t.engines[sctpStream.StreamId()] = e
-			e.Run(sctpStream, stream.StreamTypeUnKnown, t.engineConfig, t.id)
+		st, err := t.assosiation.AcceptStream()
+		if err != nil {
+			fmt.Println(t.id, "stream accept error")
+			return
 		}
+		sctpStream := stream.NewSctpStream(st, t.id)
+		e := engine.NewStreamEngine(t.engineConfig)
+		e.OnStreamClosed = t.onStreamClosed
+		e.OnStream = t.onStreamInitialized
+		t.engines[sctpStream.StreamId()] = e
+		e.Run(sctpStream, stream.StreamTypeUnKnown, t.engineConfig, t.id)
 	}
 }
 
