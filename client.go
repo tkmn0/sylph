@@ -101,6 +101,7 @@ func (c *Client) Connect(address string, port int, tc TransportConfig) {
 		return
 	}
 
+	c.connectionState = Connected
 	c.conn = dtlsConn
 
 	t := transport.NewSctpTransport("")
@@ -112,7 +113,6 @@ func (c *Client) Connect(address string, port int, tc TransportConfig) {
 		c.onTransportHandler(t)
 	}
 	c.transports[t.Id()] = t
-	c.connectionState = Connected
 	if c.onConnectionStateChanged != nil {
 		c.onConnectionStateChanged(c.connectionState)
 	}
