@@ -26,7 +26,6 @@ func NewServer() *Server {
 	return &Server{
 		listener:   listener.NewListener(),
 		transports: []Transport{},
-		close:      make(chan bool),
 	}
 }
 
@@ -40,6 +39,7 @@ func (s *Server) obserbeClose() {
 // Run runs server with address, port, and TransportConfig.
 // This will block process, call this with goroutine when necessary.
 func (s *Server) Run(address string, port int, tc TransportConfig) {
+	s.close = make(chan bool)
 	go s.obserbeClose()
 
 	c := listener.ListenerConfig{
