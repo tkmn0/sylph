@@ -113,20 +113,20 @@ func SendData(p unsafe.Pointer, data []byte) bool {
 }
 
 func Dispose() {
-	for _, c := range clients {
-		c.Close()
-	}
-
-	for _, s := range servers {
-		s.Close()
-	}
-
 	for _, c := range channels {
 		c.Close()
 	}
 
 	for _, t := range transports {
 		t.Close()
+	}
+
+	for _, c := range clients {
+		c.Close()
+	}
+
+	for _, s := range servers {
+		s.Close()
 	}
 
 	clients = []*sylph.Client{}
